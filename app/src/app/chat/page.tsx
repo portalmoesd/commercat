@@ -149,7 +149,8 @@ export default function ChatPage() {
         });
 
         if (!response.ok) {
-          throw new Error(`Chat request failed: ${response.status}`);
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || errData.details || `Chat request failed: ${response.status}`);
         }
 
         const reader = response.body?.getReader();
