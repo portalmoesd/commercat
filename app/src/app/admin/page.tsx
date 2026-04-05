@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createBrowserClient } from "@/lib/supabase";
+import { createBrowserClient } from "@/lib/supabase-browser";
 import { OrderTable } from "@/components/admin/OrderTable";
 import type { Order, OrderStatus } from "@/types";
 import Link from "next/link";

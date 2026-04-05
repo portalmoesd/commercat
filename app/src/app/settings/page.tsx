@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@/lib/supabase";
+import { createBrowserClient } from "@/lib/supabase-browser";
 import { useCurrency } from "@/lib/currency-context";
 import type { User } from "@/types";
 import Link from "next/link";

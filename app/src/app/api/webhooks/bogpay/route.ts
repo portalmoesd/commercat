@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyBogSignature } from "@/lib/bogpay";
-import { createAdminClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase-server";
 import { sendOrderConfirmationEmail, notifyAdmins } from "@/lib/email";
 import { formatPrice } from "@/lib/currency";
 

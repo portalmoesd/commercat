@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase";
+import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
 
 /**
  * OAuth callback handler for Supabase Auth (Google OAuth, magic links).

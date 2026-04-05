@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase";
+import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
 
 export async function GET() {
   try {
