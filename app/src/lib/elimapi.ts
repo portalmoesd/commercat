@@ -22,23 +22,29 @@ async function fetchWithRetry(
   for (let attempt = 0; attempt <= retries; attempt++) {
     const response = await fetch(url, options);
 
-    if (response.ok || response.status < 500) {
+    if (response.ok) {
       return response;
+    }
+
+    // For non-5xx errors, don't retry — throw immediately with details
+    if (response.status < 500) {
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `Elimapi ${response.status}: ${body.slice(0, 300)}`
+      );
     }
 
     // Log server error details
     const body = await response.text().catch(() => "");
     console.error(
-      `Elimapi ${response.status} (attempt ${attempt + 1}/${retries + 1}):`,
-      body.slice(0, 200)
+      `Elimapi ${response.status} (attempt ${attempt + 1}/${retries + 1}): URL=${url} Body=${body.slice(0, 300)}`
     );
 
     if (attempt < retries) {
-      // Wait before retry: 1s, 2s
       await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
     } else {
       throw new Error(
-        `Elimapi failed after ${retries + 1} attempts: ${response.status} ${body.slice(0, 100)}`
+        `Elimapi failed after ${retries + 1} attempts: ${response.status} — ${body.slice(0, 200)}`
       );
     }
   }
