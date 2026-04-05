@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
+import { uploadImage } from "@/lib/storage";
 import {
   streamChatGenerator,
   translateQuery,
@@ -203,25 +204,39 @@ export async function POST(req: NextRequest) {
               let chineseTerms: string[] = [];
 
               if (isImageSearch) {
-                // Claude already described the image above — use its response
-                // to generate search terms (Elimapi needs a URL, not base64)
-                chineseTerms = await translateQuery(
-                  fullResponse || message || "similar product",
-                  sizeProfile
-                );
-
+                // Upload image to Supabase Storage to get a public URL
                 controller.enqueue(
                   encoder.encode(
-                    `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
+                    `data: ${JSON.stringify({ type: "status", content: "Uploading image..." })}\n\n`
                   )
                 );
 
-                const searchResults = await Promise.all(
-                  chineseTerms.map((term) =>
-                    searchByKeyword(term, "taobao" as Platform)
-                  )
-                );
-                allProducts = searchResults.flat();
+                try {
+                  const imageUrl = await uploadImage(image_base64!, authUser.id);
+
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
+                    )
+                  );
+
+                  // Use Elimapi's real image search with the public URL
+                  allProducts = await searchByImage(imageUrl, "taobao" as Platform);
+                } catch (uploadErr) {
+                  // Fallback: use Claude's description to do text search
+                  console.error("Image upload/search failed, falling back to text search:", uploadErr);
+                  chineseTerms = await translateQuery(
+                    fullResponse || message || "similar product",
+                    sizeProfile
+                  );
+
+                  const searchResults = await Promise.all(
+                    chineseTerms.map((term) =>
+                      searchByKeyword(term, "taobao" as Platform)
+                    )
+                  );
+                  allProducts = searchResults.flat();
+                }
               } else {
                 chineseTerms = await translateQuery(message, sizeProfile);
 
