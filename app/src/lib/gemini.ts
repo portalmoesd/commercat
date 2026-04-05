@@ -30,7 +30,7 @@ When a user asks about their order status (e.g. "where is my order", "track my o
 Then provide a natural response about checking their order.`;
 
 const flash = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash-preview-04-17",
+  model: "gemini-flash-latest",
   systemInstruction: SYSTEM_PROMPT,
 });
 
