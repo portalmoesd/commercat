@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-server";
 import {
   streamChat,
   translateQuery,
@@ -19,7 +19,57 @@ import type {
 } from "@/types";
 
 export async function POST(req: NextRequest) {
+  // Use admin client for everything — avoids cookie/RLS issues
+  const adminClient = createAdminClient();
+
   try {
+    // Extract auth token from cookies
+    const allCookies = req.cookies.getAll();
+    const authCookies = allCookies
+      .filter((c) => c.name.includes("auth-token"))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    let token = "";
+    if (authCookies.length === 1) {
+      token = authCookies[0].value;
+    } else if (authCookies.length > 1) {
+      // Chunked cookies: sb-xxx-auth-token.0, sb-xxx-auth-token.1, etc.
+      token = authCookies.map((c) => c.value).join("");
+    }
+
+    // Try to parse the token — @supabase/ssr stores it as base64 JSON
+    let accessToken = "";
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(token, "base64").toString("utf-8")
+      );
+      accessToken = parsed.access_token ?? parsed[0]?.access_token ?? "";
+    } catch {
+      // Maybe it's plain text or already the access token
+      try {
+        const parsed = JSON.parse(token);
+        accessToken = parsed.access_token ?? "";
+      } catch {
+        accessToken = token;
+      }
+    }
+
+    // Verify the user with Supabase
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await adminClient.auth.getUser(accessToken || undefined);
+
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({
+          error: "Unauthorized",
+          details: authError?.message ?? "No valid session found",
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const {
       message,
@@ -39,21 +89,6 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-
-    if (!authUser) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Use admin client for DB operations (bypasses RLS issues)
-    const adminClient = createAdminClient();
 
     // Ensure user profile exists
     await adminClient.from("users").upsert(
@@ -116,7 +151,7 @@ export async function POST(req: NextRequest) {
       content: m.content,
     }));
 
-    // First pass: get Claude's response to detect intent
+    // Stream response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -299,10 +334,11 @@ export async function POST(req: NextRequest) {
 
           controller.close();
         } catch (error) {
+          const errMsg = error instanceof Error ? error.message : "Something went wrong";
           console.error("Chat stream error:", error);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ type: "error", content: "Something went wrong" })}\n\n`
+              `data: ${JSON.stringify({ type: "error", content: errMsg })}\n\n`
             )
           );
           controller.close();
@@ -318,8 +354,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : "Chat failed";
     console.error("Chat error:", error);
-    return new Response(JSON.stringify({ error: "Chat failed" }), {
+    return new Response(JSON.stringify({ error: errMsg }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
