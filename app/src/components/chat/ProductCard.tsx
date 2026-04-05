@@ -7,6 +7,7 @@ import { getCurrencyInfo } from "@/lib/currency";
 interface ProductCardProps {
   product: ProcessedProduct;
   onAddToBasket?: (product: ProcessedProduct, variant: Record<string, string>) => void;
+  onExpand?: (product: ProcessedProduct) => void;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -23,18 +24,18 @@ const PLATFORM_COLORS: Record<string, string> = {
   pinduoduo: "bg-purple-100 text-purple-700",
 };
 
-export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
+export function ProductCard({ product, onAddToBasket, onExpand }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>();
   const [selectedColor, setSelectedColor] = useState<string | undefined>();
 
   const currencyInfo = getCurrencyInfo(product.currency);
   const symbol = currencyInfo.symbol;
 
-  // Extract unique sizes and colors from SKUs
   const sizes = [...new Set(product.skus.map((s) => s.size).filter(Boolean))] as string[];
   const colors = [...new Set(product.skus.map((s) => s.color).filter(Boolean))] as string[];
 
-  function handleAddToBasket() {
+  function handleAddToBasket(e: React.MouseEvent) {
+    e.stopPropagation();
     const variant: Record<string, string> = {};
     if (selectedSize) variant.size = selectedSize;
     if (selectedColor) variant.color = selectedColor;
@@ -42,7 +43,10 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
   }
 
   return (
-    <div className="w-[180px] flex-shrink-0 bg-white border border-gray-light rounded-lg overflow-hidden">
+    <div
+      className="w-[180px] flex-shrink-0 bg-white border border-gray-light rounded-lg overflow-hidden cursor-pointer hover:border-gray-mid transition-colors"
+      onClick={() => onExpand?.(product)}
+    >
       {/* Image */}
       <div className="relative w-full h-[180px] bg-gray-light">
         {product.image_url && (
@@ -65,43 +69,46 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
           {PLATFORM_LABELS[product.platform] ?? product.platform}
         </span>
 
-        {/* Branded disclaimer */}
-        {product.branded && (
-          <span className="absolute bottom-2 left-2 right-2 px-1.5 py-0.5 text-[9px] bg-accent-light text-accent rounded text-center">
-            Similar style — not guaranteed authentic
-          </span>
-        )}
+        {/* Expand hint */}
+        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 text-[9px] bg-black/50 text-white rounded">
+          Tap for details
+        </span>
       </div>
 
       {/* Content */}
       <div className="p-2.5">
         {/* Title */}
-        <p className="text-xs font-medium text-charcoal line-clamp-2 mb-2 leading-snug">
+        <p className="text-xs font-medium text-charcoal line-clamp-2 mb-1 leading-snug">
           {product.title_en}
         </p>
 
-        {/* Two-line price breakdown (mandatory) */}
+        {/* Branded disclaimer — below title, not on image */}
+        {product.branded && (
+          <span className="text-[9px] text-accent bg-accent-light px-1.5 py-0.5 rounded inline-block mb-1.5">
+            Similar style — authenticity not guaranteed
+          </span>
+        )}
+
+        {/* Shop name */}
+        {product.shop_name && (
+          <p className="text-[10px] text-gray-mid truncate mb-1">
+            {product.shop_name}
+          </p>
+        )}
+
+        {/* Two-line price breakdown */}
         <div className="font-mono text-[11px] space-y-0.5 mb-2">
           <div className="flex justify-between text-gray-dark">
             <span>Item cost</span>
-            <span>
-              {symbol}
-              {product.item_cost_local.toFixed(2)}
-            </span>
+            <span>{symbol}{product.item_cost_local.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-gray-dark">
             <span>Service fee</span>
-            <span>
-              {symbol}
-              {product.commission_local.toFixed(2)}
-            </span>
+            <span>{symbol}{product.commission_local.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-medium text-charcoal border-t border-gray-light pt-0.5">
             <span>Total</span>
-            <span>
-              {symbol}
-              {product.total_local.toFixed(2)}
-            </span>
+            <span>{symbol}{product.total_local.toFixed(2)}</span>
           </div>
         </div>
 
@@ -111,7 +118,7 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
             {sizes.map((size) => (
               <button
                 key={size}
-                onClick={() => setSelectedSize(selectedSize === size ? undefined : size)}
+                onClick={(e) => { e.stopPropagation(); setSelectedSize(selectedSize === size ? undefined : size); }}
                 className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
                   selectedSize === size
                     ? "border-charcoal bg-charcoal text-white"
@@ -130,7 +137,7 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
             {colors.map((color) => (
               <button
                 key={color}
-                onClick={() => setSelectedColor(selectedColor === color ? undefined : color)}
+                onClick={(e) => { e.stopPropagation(); setSelectedColor(selectedColor === color ? undefined : color); }}
                 className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
                   selectedColor === color
                     ? "border-charcoal bg-charcoal text-white"
@@ -143,7 +150,7 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
           </div>
         )}
 
-        {/* Add to basket button */}
+        {/* Add to basket */}
         <button
           onClick={handleAddToBasket}
           className="w-full py-1.5 text-xs font-medium bg-charcoal text-white rounded hover:bg-charcoal/90 transition-colors"

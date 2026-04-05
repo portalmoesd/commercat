@@ -185,6 +185,53 @@ export async function getProductDetail(
   return normalise(item, platform);
 }
 
+/** Get full product detail with multiple images and description */
+export async function getProductDetailFull(
+  itemId: string,
+  platform: Platform = "1688"
+): Promise<{
+  product: NormalisedProduct;
+  pictures: string[];
+  description: string;
+}> {
+  const host =
+    platform === "taobao" || platform === "tmall"
+      ? TAOBAO_OPEN_HOST
+      : OTAPI_1688_HOST;
+
+  const params = new URLSearchParams({
+    language: "en",
+    itemId,
+  });
+
+  const url = `https://${host}/BatchGetItemFullInfo?${params}`;
+  const response = await fetchWithRetry(url, host);
+  const data = await response.json();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = (data as any).OtapiItemInfoList?.[0] ?? (data as any).Result ?? data;
+
+  const product = normalise(raw, platform);
+
+  // Extract multiple pictures
+  const pictures: string[] = [];
+  if (raw.Pictures?.ItemPicture) {
+    for (const pic of raw.Pictures.ItemPicture) {
+      if (pic.Url) pictures.push(pic.Url);
+      if (pic.Large?.Url) pictures.push(pic.Large.Url);
+    }
+  }
+  if (pictures.length === 0 && product.image_url) {
+    pictures.push(product.image_url);
+  }
+
+  // Extract description
+  const description =
+    raw.Description ?? raw.DescriptionHtml ?? raw.ItemDescription ?? "";
+
+  return { product, pictures, description };
+}
+
 // ── Normalisation (handles OTAPI response format from both APIs) ──
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
