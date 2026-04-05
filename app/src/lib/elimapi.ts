@@ -2,61 +2,50 @@ import { createHash } from "crypto";
 import type { NormalisedProduct, Platform } from "@/types";
 import { redis } from "./redis";
 
-const ELIMAPI_BASE = "https://api.elim.asia/v2";
-const CACHE_TTL = 6 * 60 * 60; // 6 hours in seconds
+const TMAPI_BASE = "https://api.tmapi.io";
+const CACHE_TTL = 6 * 60 * 60; // 6 hours
 const MAX_RETRIES = 2;
 
-function getHeaders(): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.ELIMAPI_KEY}`,
-  };
+function getApiToken(): string {
+  return process.env.TMAPI_KEY || process.env.ELIMAPI_KEY || "";
 }
 
-/** Fetch with retry for transient errors (503, 502, etc.) */
+/** Fetch with retry for transient errors */
 async function fetchWithRetry(
   url: string,
-  options: RequestInit,
   retries = MAX_RETRIES
 ): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const response = await fetch(url, options);
+    const response = await fetch(url);
 
-    if (response.ok) {
-      return response;
-    }
+    if (response.ok) return response;
 
-    // For non-5xx errors, don't retry — throw immediately with details
     if (response.status < 500) {
       const body = await response.text().catch(() => "");
-      throw new Error(
-        `Elimapi ${response.status}: ${body.slice(0, 300)}`
-      );
+      throw new Error(`TMAPI ${response.status}: ${body.slice(0, 300)}`);
     }
 
-    // Log server error details
     const body = await response.text().catch(() => "");
     console.error(
-      `Elimapi ${response.status} (attempt ${attempt + 1}/${retries + 1}): URL=${url} Body=${body.slice(0, 300)}`
+      `TMAPI ${response.status} (attempt ${attempt + 1}/${retries + 1}): ${body.slice(0, 300)}`
     );
 
     if (attempt < retries) {
       await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
     } else {
       throw new Error(
-        `Elimapi failed after ${retries + 1} attempts: ${response.status} — ${body.slice(0, 200)}`
+        `TMAPI failed after ${retries + 1} attempts: ${response.status} — ${body.slice(0, 200)}`
       );
     }
   }
-
-  throw new Error("Elimapi: unexpected retry exit");
+  throw new Error("TMAPI: unexpected retry exit");
 }
 
 // ── Search ──
 
 export async function searchByKeyword(
   keyword: string,
-  platform: Platform = "taobao",
+  platform: Platform = "1688",
   page = 1,
   limit = 20
 ): Promise<NormalisedProduct[]> {
@@ -64,17 +53,15 @@ export async function searchByKeyword(
   const cached = await getCachedResults(keyword, platform);
   if (cached) return cached;
 
-  const response = await fetchWithRetry(`${ELIMAPI_BASE}/item_search`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ keyword, platform, page, limit }),
-  });
+  // TMAPI search is available for 1688 — use it for all searches
+  const url = `${TMAPI_BASE}/1688/search/items?apiToken=${encodeURIComponent(getApiToken())}&keyword=${encodeURIComponent(keyword)}&page=${page}&page_size=${Math.min(limit, 20)}&sort=default`;
 
+  const response = await fetchWithRetry(url);
   const data = await response.json();
-  const items: unknown[] = data.items ?? data.result ?? data.data ?? [];
-  const normalised = items.map((item) => normalise(item, platform));
 
-  // Cache results
+  const items: unknown[] = data.data?.items ?? data.items ?? data.result ?? [];
+  const normalised = items.map((item) => normalise(item, "1688"));
+
   if (normalised.length > 0) {
     await setCachedResults(keyword, platform, normalised);
   }
@@ -84,48 +71,61 @@ export async function searchByKeyword(
 
 export async function searchByImage(
   imageUrl: string,
-  platform: Platform = "taobao"
+  platform: Platform = "1688"
 ): Promise<NormalisedProduct[]> {
-  const response = await fetchWithRetry(`${ELIMAPI_BASE}/item_search_img`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ image_url: imageUrl, platform }),
-  });
+  const url = `${TMAPI_BASE}/1688/search/image?apiToken=${encodeURIComponent(getApiToken())}&img_url=${encodeURIComponent(imageUrl)}&page=1&page_size=20&sort=default`;
 
+  const response = await fetchWithRetry(url);
   const data = await response.json();
-  const items: unknown[] = data.items ?? data.result ?? data.data ?? [];
-  return items.map((item) => normalise(item, platform));
+
+  const items: unknown[] = data.data?.items ?? data.items ?? data.result ?? [];
+  return items.map((item) => normalise(item, "1688"));
 }
 
 export async function getProductDetail(
   itemId: string,
-  platform: Platform = "taobao"
+  platform: Platform = "1688"
 ): Promise<NormalisedProduct> {
-  const response = await fetchWithRetry(
-    `${ELIMAPI_BASE}/item_get?item_id=${itemId}&platform=${platform}`,
-    { headers: getHeaders() }
-  );
+  const platformPath = platform === "taobao" || platform === "tmall" ? "taobao" : "1688";
+  const url = `${TMAPI_BASE}/${platformPath}/item_detail?apiToken=${encodeURIComponent(getApiToken())}&item_id=${itemId}`;
 
+  const response = await fetchWithRetry(url);
   const data = await response.json();
-  const item = data.item ?? data.result ?? data.data ?? data;
+
+  const item = data.data ?? data.item ?? data.result ?? data;
   return normalise(item, platform);
 }
 
-// ── Normalisation ──
+// ── Normalisation (handles both TMAPI and Elimapi response formats) ──
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function normalise(raw: any, platform: Platform): NormalisedProduct {
+  // TMAPI uses different field names than Elimapi
+  const id = String(raw.item_id ?? raw.id ?? raw.num_iid ?? raw.offer_id ?? "");
+  const priceCny = parseFloat(
+    raw.price ?? raw.min_price ?? raw.sale_price ??
+    raw.price_info?.price ?? raw.price_info?.min_price ?? "0"
+  );
+
+  // TMAPI image field
+  const imageUrl = raw.img ?? raw.image_url ?? raw.pic_url ??
+    raw.main_imgs?.[0] ?? raw.images?.[0] ?? "";
+
   return {
-    id: String(raw.item_id ?? raw.id ?? raw.num_iid ?? ""),
+    id,
     title_cn: raw.title ?? "",
-    price_cny: parseFloat(raw.price ?? raw.min_price ?? raw.sale_price ?? "0"),
+    price_cny: priceCny,
     cn_shipping_cny: parseFloat(raw.post_fee ?? raw.shipping ?? "0"),
-    image_url: raw.image_url ?? raw.pic_url ?? raw.main_imgs?.[0] ?? raw.images?.[0] ?? "",
-    product_url: buildProductUrl(platform, String(raw.item_id ?? raw.id ?? raw.num_iid ?? "")),
-    shop_name: raw.shop_name ?? raw.seller_nick ?? raw.nick ?? "",
+    image_url: imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl,
+    product_url: buildProductUrl(platform, id),
+    shop_name: raw.shop_name ?? raw.seller_nick ?? raw.nick ??
+      raw.shop_info?.shop_name ?? "",
     platform,
-    sales_count: parseInt(raw.comment_count ?? raw.sales ?? raw.volume ?? "0", 10),
-    skus: raw.skus ?? [],
+    sales_count: parseInt(
+      raw.sale_info?.sale_count ?? raw.comment_count ?? raw.sales ??
+      raw.volume ?? "0", 10
+    ),
+    skus: raw.skus ?? raw.sku?.list ?? [],
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -157,7 +157,6 @@ async function getCachedResults(
     const cached = await redis.get<NormalisedProduct[]>(cacheKey(query, platform));
     return cached ?? null;
   } catch {
-    // Redis unavailable — skip cache
     return null;
   }
 }
