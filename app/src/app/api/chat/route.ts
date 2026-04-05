@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createAdminClient } from "@/lib/supabase-server";
+import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
 import {
   streamChat,
   translateQuery,
@@ -19,52 +19,19 @@ import type {
 } from "@/types";
 
 export async function POST(req: NextRequest) {
-  // Use admin client for everything — avoids cookie/RLS issues
-  const adminClient = createAdminClient();
-
   try {
-    // Extract auth token from cookies
-    const allCookies = req.cookies.getAll();
-    const authCookies = allCookies
-      .filter((c) => c.name.includes("auth-token"))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    let token = "";
-    if (authCookies.length === 1) {
-      token = authCookies[0].value;
-    } else if (authCookies.length > 1) {
-      // Chunked cookies: sb-xxx-auth-token.0, sb-xxx-auth-token.1, etc.
-      token = authCookies.map((c) => c.value).join("");
-    }
-
-    // Try to parse the token — @supabase/ssr stores it as base64 JSON
-    let accessToken = "";
-    try {
-      const parsed = JSON.parse(
-        Buffer.from(token, "base64").toString("utf-8")
-      );
-      accessToken = parsed.access_token ?? parsed[0]?.access_token ?? "";
-    } catch {
-      // Maybe it's plain text or already the access token
-      try {
-        const parsed = JSON.parse(token);
-        accessToken = parsed.access_token ?? "";
-      } catch {
-        accessToken = token;
-      }
-    }
-
-    // Verify the user with Supabase
+    // Auth — same pattern as /api/orders (which works)
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user: authUser },
       error: authError,
-    } = await adminClient.auth.getUser(accessToken || undefined);
+    } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
       return new Response(
         JSON.stringify({
           error: "Unauthorized",
-          details: authError?.message ?? "No valid session found",
+          details: authError?.message ?? "No valid session",
         }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
@@ -89,6 +56,9 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // Use admin client for DB operations (bypasses RLS)
+    const adminClient = createAdminClient();
 
     // Ensure user profile exists
     await adminClient.from("users").upsert(
@@ -164,13 +134,11 @@ export async function POST(req: NextRequest) {
           const reader = claudeStream.getReader();
           let fullResponse = "";
 
-          // Read the full streamed response
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             const chunk = new TextDecoder().decode(value);
 
-            // Parse SSE events from Anthropic stream
             const lines = chunk.split("\n");
             for (const line of lines) {
               if (line.startsWith("data: ")) {
@@ -183,7 +151,6 @@ export async function POST(req: NextRequest) {
                     const text = data.delta.text;
                     fullResponse += text;
 
-                    // Stream text to client (excluding intent markers)
                     const cleanText = text
                       .replace(/\[SEARCH_INTENT\]\n?/g, "")
                       .replace(/\[TRACKING_INTENT\]\n?/g, "");
@@ -205,14 +172,12 @@ export async function POST(req: NextRequest) {
           // Check for search intent (text search or image upload)
           const isImageSearch = !!image_base64;
           if (fullResponse.includes("[SEARCH_INTENT]") || isImageSearch) {
-            // Check search limit
             const limitStatus = await checkAndIncrementSearchCount(
               authUser.id,
               tier
             );
 
             if (!limitStatus.allowed) {
-              // Send search limit prompt
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({
@@ -224,7 +189,6 @@ export async function POST(req: NextRequest) {
                 )
               );
             } else {
-              // Perform search
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({ type: "status", content: "Searching..." })}\n\n`
@@ -235,11 +199,9 @@ export async function POST(req: NextRequest) {
               let chineseTerms: string[] = [];
 
               if (isImageSearch) {
-                // Image search: convert base64 to data URL for Elimapi
                 const imageUrl = `data:image/jpeg;base64,${image_base64}`;
                 allProducts = await searchByImage(imageUrl, "taobao" as Platform);
               } else {
-                // Text search: translate query to Chinese
                 chineseTerms = await translateQuery(message, sizeProfile);
 
                 controller.enqueue(
@@ -256,10 +218,8 @@ export async function POST(req: NextRequest) {
                 allProducts = searchResults.flat();
               }
 
-              // Filter and rank via Claude
               const filtered = await filterResults(message, allProducts);
 
-              // Get FX rates and calculate prices
               const rates = await getFxRates();
               const fxRate = rates[currency] ?? rates["USD"];
 
@@ -290,7 +250,6 @@ export async function POST(req: NextRequest) {
                 }
               );
 
-              // Send product cards
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({
@@ -303,7 +262,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Save assistant message to conversation
+          // Save assistant message
           const assistantMessage: Message = {
             id: crypto.randomUUID(),
             role: "assistant",
@@ -314,7 +273,6 @@ export async function POST(req: NextRequest) {
           };
           messages.push(assistantMessage);
 
-          // Update conversation in Supabase
           if (conversationId) {
             await adminClient
               .from("conversations")
@@ -325,7 +283,6 @@ export async function POST(req: NextRequest) {
               .eq("id", conversationId);
           }
 
-          // Send conversation_id to client
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ type: "done", conversation_id: conversationId })}\n\n`
@@ -334,7 +291,8 @@ export async function POST(req: NextRequest) {
 
           controller.close();
         } catch (error) {
-          const errMsg = error instanceof Error ? error.message : "Something went wrong";
+          const errMsg =
+            error instanceof Error ? error.message : "Something went wrong";
           console.error("Chat stream error:", error);
           controller.enqueue(
             encoder.encode(
