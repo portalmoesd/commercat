@@ -122,6 +122,14 @@ export async function POST(req: NextRequest) {
       content: m.content,
     }));
 
+    // Detect image media type from base64 header bytes
+    let imageMediaType = "image/jpeg";
+    if (image_base64) {
+      if (image_base64.startsWith("iVBOR")) imageMediaType = "image/png";
+      else if (image_base64.startsWith("R0lGO")) imageMediaType = "image/gif";
+      else if (image_base64.startsWith("UklGR")) imageMediaType = "image/webp";
+    }
+
     // For the latest user message, include image if provided
     if (image_base64) {
       anthropicMessages.push({
@@ -131,7 +139,7 @@ export async function POST(req: NextRequest) {
             type: "image",
             source: {
               type: "base64",
-              media_type: "image/jpeg",
+              media_type: imageMediaType,
               data: image_base64,
             },
           },
