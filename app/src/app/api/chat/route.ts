@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
 import {
   streamChat,
   translateQuery,
@@ -52,8 +52,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Use admin client for DB operations (bypasses RLS issues)
+    const adminClient = createAdminClient();
+
+    // Ensure user profile exists
+    await adminClient.from("users").upsert(
+      {
+        id: authUser.id,
+        email: authUser.email!,
+        full_name:
+          authUser.user_metadata?.full_name ??
+          authUser.user_metadata?.name ??
+          null,
+      },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
+
     // Load user profile
-    const { data: userProfile } = await supabase
+    const { data: userProfile } = await adminClient
       .from("users")
       .select("subscription_tier, size_profile, trial_claimed")
       .eq("id", authUser.id)
@@ -68,7 +84,7 @@ export async function POST(req: NextRequest) {
     let messages: Message[] = [];
 
     if (conversationId) {
-      const { data: conv } = await supabase
+      const { data: conv } = await adminClient
         .from("conversations")
         .select("messages")
         .eq("id", conversationId)
@@ -77,7 +93,7 @@ export async function POST(req: NextRequest) {
         messages = conv.messages as Message[];
       }
     } else {
-      const { data: newConv } = await supabase
+      const { data: newConv } = await adminClient
         .from("conversations")
         .insert({ user_id: authUser.id, messages: [] })
         .select("id")
@@ -265,7 +281,7 @@ export async function POST(req: NextRequest) {
 
           // Update conversation in Supabase
           if (conversationId) {
-            await supabase
+            await adminClient
               .from("conversations")
               .update({
                 messages,
