@@ -116,10 +116,36 @@ export async function POST(req: NextRequest) {
     messages.push(userMessage);
 
     // Build Anthropic message format
-    const anthropicMessages = messages.map((m) => ({
+    const anthropicMessages = messages.slice(0, -1).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
+
+    // For the latest user message, include image if provided
+    if (image_base64) {
+      anthropicMessages.push({
+        role: "user" as const,
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/jpeg",
+              data: image_base64,
+            },
+          },
+          {
+            type: "text",
+            text: message || "What is this? Find similar products.",
+          },
+        ] as unknown as string,
+      });
+    } else {
+      anthropicMessages.push({
+        role: "user" as const,
+        content: message,
+      });
+    }
 
     // Stream response
     const encoder = new TextEncoder();
@@ -177,8 +203,25 @@ export async function POST(req: NextRequest) {
               let chineseTerms: string[] = [];
 
               if (isImageSearch) {
-                const imageUrl = `data:image/jpeg;base64,${image_base64}`;
-                allProducts = await searchByImage(imageUrl, "taobao" as Platform);
+                // Claude already described the image above — use its response
+                // to generate search terms (Elimapi needs a URL, not base64)
+                chineseTerms = await translateQuery(
+                  fullResponse || message || "similar product",
+                  sizeProfile
+                );
+
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
+                  )
+                );
+
+                const searchResults = await Promise.all(
+                  chineseTerms.map((term) =>
+                    searchByKeyword(term, "taobao" as Platform)
+                  )
+                );
+                allProducts = searchResults.flat();
               } else {
                 chineseTerms = await translateQuery(message, sizeProfile);
 
