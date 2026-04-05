@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commercat — Marketing Plan 2026–2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --charcoal: #3C3C3B;
+  --white: #FFFFFF;
+  --cream: #F8F7F4;
+  --gray-light: #EEEDE9;
+  --gray-mid: #B4B2A9;
+  --gray-dark: #888780;
+  --accent: #E8A020;
+  --accent-light: #FFF3DC;
+  --green: #1D9E75;
+  --green-dark: #0F6E56;
+  --green-light: #E1F5EE;
+  --purple: #534AB7;
+  --purple-light: #EEEDFE;
+  --red: #E24B4A;
+  --red-light: #FCEBEB;
+  --text: #1A1A19;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── LAYOUT ── */
+.page { max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+
+/* ── COVER ── */
+.cover {
+  background: var(--charcoal);
+  padding: 0;
+  min-height: 340px;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute;
+  right: -80px; top: -80px;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.cover::after {
+  content: '';
+  position: absolute;
+  right: 40px; top: 40px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.cover-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px 48px 48px;
+  position: relative;
+  z-index: 1;
+}
+.cover-logo { height: 44px; width: auto; margin-bottom: 48px; display: block; }
+.cover-grid { display: grid; grid-template-columns: 1fr 380px; gap: 48px; align-items: end; }
+.cover-label { font-size: 10px; font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.35); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+.cover-title { font-size: 52px; font-weight: 300; color: #fff; line-height: 1.05; letter-spacing: -1.5px; margin-bottom: 16px; }
+.cover-sub { font-size: 15px; color: rgba(255,255,255,0.45); font-weight: 300; line-height: 1.6; max-width: 440px; }
+.cover-stats { display: flex; flex-direction: column; gap: 1px; }
+.cs-row { padding: 14px 20px; display: flex; justify-content: space-between; align-items: baseline; background: rgba(255,255,255,0.05); }
+.cs-row:first-child { border-radius: 10px 10px 0 0; }
+.cs-row:last-child { border-radius: 0 0 10px 10px; }
+.cs-label { font-size: 11px; color: rgba(255,255,255,0.4); font-family: 'DM Mono', monospace; letter-spacing: 0.5px; }
+.cs-val { font-size: 18px; font-weight: 500; color: #fff; }
+.cs-val.green { color: var(--green); }
+.cs-val.accent { color: var(--accent); }
+
+/* ── NAV ── */
+.doc-nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-light);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.doc-nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+.doc-nav a {
+  display: block;
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--gray-dark);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.doc-nav a:hover { color: var(--charcoal); border-bottom-color: var(--gray-mid); }
+
+/* ── SECTIONS ── */
+.section { padding: 64px 0; border-bottom: 1px solid var(--gray-light); }
+.section:last-child { border-bottom: none; }
+.section-header { margin-bottom: 40px; }
+.section-num { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--gray-mid); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.section-title { font-size: 36px; font-weight: 300; letter-spacing: -0.8px; color: var(--charcoal); line-height: 1.1; }
+.section-lead { font-size: 15px; color: var(--gray-dark); font-weight: 300; max-width: 600px; line-height: 1.7; margin-top: 10px; }
+
+/* ── RULE ── */
+.rule { display: flex; align-items: center; gap: 14px; margin: 32px 0 20px; }
+.rule-line { flex: 1; height: 1px; background: var(--gray-light); }
+.rule-text { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray-mid); white-space: nowrap; }
+
+/* ── KPI GRIDS ── */
+.kpi-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 28px; }
+.kpi-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 28px; }
+.kpi-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-bottom: 28px; }
+.kpi {
+  background: var(--white);
+  border: 1px solid var(--gray-light);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.kpi-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--gray-mid); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+.kpi-val { font-size: 24px; font-weight: 500; color: var(--charcoal); line-height: 1.1; }
+.kpi-sub { font-size: 11px; color: var(--gray-dark); margin-top: 4px; }
+.kpi-val.green { color: var(--green-dark); }
+.kpi-val.accent { color: #854F0B; }
+.kpi-val.purple { color: var(--purple); }
+.kpi-val.red { color: #A32D2D; }
+
+/* ── CARD ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--gray-light);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card-title { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--gray-mid); margin-bottom: 14px; }
+
+/* ── GRIDS ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ── TABLE ── */
+.tbl-wrap { border: 1px solid var(--gray-light); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.tbl-wrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl-wrap thead tr { background: #F2F1ED; }
+.tbl-wrap th {
+  padding: 9px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--gray-dark);
+  border-bottom: 1px solid var(--gray-light);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  font-family: 'DM Mono', monospace;
+}
+.tbl-wrap th.r { text-align: right; }
+.tbl-wrap td { padding: 9px 14px; color: var(--gray-dark); border-bottom: 1px solid var(--gray-light); vertical-align: top; }
+.tbl-wrap tbody tr:last-child td { border-bottom: none; }
+.tbl-wrap td.bold { font-weight: 500; color: var(--charcoal); }
+.tbl-wrap td.r { text-align: right; }
+.tbl-wrap tr.hi td { background: var(--cream); }
+.tbl-wrap td.g { color: var(--green-dark); font-weight: 500; }
+.tbl-wrap td.a { color: #854F0B; font-weight: 500; }
+
+/* ── PILLS ── */
+.pill { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 20px; font-weight: 500; font-family: 'DM Mono', monospace; letter-spacing: 0.3px; }
+.p-green { background: var(--green-light); color: #085041; }
+.p-red { background: var(--red-light); color: #791F1F; }
+.p-accent { background: var(--accent-light); color: #633806; }
+.p-purple { background: var(--purple-light); color: #26215C; }
+.p-gray { background: var(--gray-light); color: #444441; }
+
+/* ── PHASE BLOCKS ── */
+.phases { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--gray-light); margin-bottom: 28px; }
+.phase { padding: 24px; border-right: 1px solid var(--gray-light); }
+.phase:last-child { border-right: none; }
+.phase-1 { background: var(--cream); }
+.phase-2 { background: var(--green-light); }
+.phase-3 { background: var(--purple-light); }
+.phase-num { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--gray-mid); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.phase-name { font-size: 20px; font-weight: 500; color: var(--charcoal); margin-bottom: 4px; }
+.phase-months { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--gray-dark); margin-bottom: 10px; }
+.phase-desc { font-size: 12px; color: var(--gray-dark); line-height: 1.6; }
+.phase-target { font-size: 13px; font-weight: 500; color: var(--charcoal); margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+
+/* ── CHANNEL BARS ── */
+.ch-list { display: flex; flex-direction: column; gap: 0; }
+.ch-item { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--gray-light); }
+.ch-item:last-child { border-bottom: none; }
+.ch-name { font-size: 12px; font-weight: 500; color: var(--charcoal); width: 180px; flex-shrink: 0; }
+.ch-bar-wrap { flex: 1; background: var(--gray-light); border-radius: 4px; height: 7px; overflow: hidden; }
+.ch-bar { height: 100%; border-radius: 4px; }
+.ch-cac { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--gray-dark); width: 70px; flex-shrink: 0; text-align: right; }
+.ch-when { font-size: 11px; color: var(--gray-mid); width: 60px; flex-shrink: 0; text-align: right; }
+
+/* ── CONTENT CARDS ── */
+.content-card {
+  background: var(--white);
+  border: 1px solid var(--gray-light);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.cc-title { font-size: 14px; font-weight: 500; color: var(--charcoal); margin-bottom: 4px; }
+.cc-sub { font-size: 11px; color: var(--gray-mid); margin-bottom: 10px; font-family: 'DM Mono', monospace; }
+.cc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.cc-row { display: flex; justify-content: space-between; font-size: 11px; padding: 5px 0; border-bottom: 1px solid var(--gray-light); }
+.cc-row:last-child { border-bottom: none; }
+.cc-row-label { color: var(--gray-dark); }
+.cc-row-val { color: var(--charcoal); font-weight: 500; }
+
+/* ── FUNNEL ── */
+.funnel { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.fn-row { display: flex; align-items: center; gap: 14px; }
+.fn-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--gray-dark); width: 130px; flex-shrink: 0; text-align: right; }
+.fn-bar-outer { flex: 1; background: var(--gray-light); border-radius: 5px; height: 36px; overflow: hidden; position: relative; }
+.fn-bar-inner { height: 100%; border-radius: 5px; display: flex; align-items: center; padding: 0 12px; }
+.fn-bar-text { font-size: 11px; font-weight: 500; color: white; white-space: nowrap; }
+.fn-val { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--gray-dark); width: 60px; flex-shrink: 0; text-align: right; }
+
+/* ── TIMELINE ── */
+.timeline { position: relative; padding-left: 24px; }
+.tl-line { position: absolute; left: 7px; top: 8px; bottom: 8px; width: 1px; background: var(--gray-light); }
+.tl-item { position: relative; padding: 0 0 28px 20px; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-dot { position: absolute; left: -18px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--white); border: 2px solid var(--gray-light); }
+.tl-dot.active { background: var(--green); border-color: var(--green); }
+.tl-dot.key { background: var(--accent); border-color: var(--accent); }
+.tl-mo { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--gray-mid); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.tl-title { font-size: 14px; font-weight: 500; color: var(--charcoal); margin-bottom: 5px; }
+.tl-desc { font-size: 12px; color: var(--gray-dark); line-height: 1.6; max-width: 640px; }
+
+/* ── BUDGET BARS ── */
+.budget-list { display: flex; flex-direction: column; gap: 0; }
+.budget-item { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--gray-light); }
+.budget-item:last-child { border-bottom: none; }
+.budget-label { font-size: 12px; color: var(--charcoal); flex: 1; }
+.budget-bar-wrap { width: 200px; background: var(--gray-light); border-radius: 4px; height: 7px; overflow: hidden; flex-shrink: 0; }
+.budget-bar { height: 100%; border-radius: 4px; }
+.budget-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--gray-dark); width: 80px; text-align: right; flex-shrink: 0; }
+
+/* ── CHARTS ── */
+.chart-wrap { position: relative; width: 100%; }
+.chart-wrap.h240 { height: 240px; }
+.chart-wrap.h280 { height: 280px; }
+.chart-wrap.h220 { height: 220px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray-dark); }
+.legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.legend-line { width: 14px; height: 2px; flex-shrink: 0; }
+
+/* ── HIGHLIGHT BOX ── */
+.highlight { background: var(--charcoal); color: white; border-radius: 12px; padding: 28px 32px; margin-bottom: 20px; }
+.highlight-title { font-size: 18px; font-weight: 500; margin-bottom: 8px; }
+.highlight-body { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.7; max-width: 640px; }
+.highlight-stat { font-size: 36px; font-weight: 300; color: var(--green); letter-spacing: -1px; margin-bottom: 4px; }
+
+/* ── NOTE BOX ── */
+.note { background: var(--accent-light); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 12px; color: #633806; line-height: 1.6; }
+
+/* ── FOOTER ── */
+.doc-footer { background: var(--charcoal); padding: 32px 48px; display: flex; justify-content: space-between; align-items: center; }
+.footer-brand { font-family: 'DM Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.4); }
+.footer-note { font-size: 11px; color: rgba(255,255,255,0.25); }
+
+/* ── PRINT ── */
+@media print {
+  .doc-nav { display: none; }
+  .section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-inner">
+    <img class="cover-logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI0LjAuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCA2MDAgMjAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA2MDAgMjAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzNDM0MzQjt9Cgkuc3Qxe2ZpbGw6I0ZGRkZGRjt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01NDYuMSwxNTEuN0g1My45Yy0xMy41LDAtMjQuNS0xMS0yNC41LTI0LjVWNzIuOWMwLTEzLjUsMTEtMjQuNSwyNC41LTI0LjVoNDkyLjJjMTMuNSwwLDI0LjUsMTEsMjQuNSwyNC41Cgl2NTQuM0M1NzAuNiwxNDAuNyw1NTkuNywxNTEuNyw1NDYuMSwxNTEuN3oiLz4KPGc+Cgk8Zz4KCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMzExLjEsOTMuOXYyNS45YzAsMS42LTEsMy4xLTIuNSwzLjdjLTEuNywwLjYtMy4zLDAuNS00LjctMC43Yy0xLjMtMS4xLTEuNi0yLjYtMS42LTQuMgoJCQljMC04LjQsMC4xLTE2LjktMC4xLTI1LjNjLTAuMS00LTItNy4zLTYtOC42Yy01LjItMS43LTExLDAuMy0xMyw2LjFjLTAuNSwxLjMtMC43LDIuOC0wLjcsNC4yYy0wLjEsOC4xLDAsMTYuMiwwLDI0LjQKCQkJYzAsMS44LTEuMSwzLjYtMi42LDQuMmMtMS44LDAuNy0zLjksMC4yLTUuMS0xLjJjLTAuNy0wLjgtMS4xLTEuOC0xLjEtMi45YzAtOC40LDAtMTYuOCwwLTI1LjJjMC0yLjQtMC41LTQuNy0yLTYuNwoJCQljLTEuNC0xLjktMy4zLTIuOS01LjUtMy4zYy0yLjctMC41LTUuMy0wLjItNy42LDEuM2MtMi43LDEuNy00LjIsNC4xLTQuNiw3LjJjLTAuMiwyLTAuMiw0LTAuMiw1LjljMCw2LjgsMCwxMy41LDAsMjAuMgoJCQljMCwxLjctMC41LDMuMy0yLjEsNC4yYy0xLjQsMC44LTMsMC45LTQuNCwwLjFjLTEuNS0wLjgtMi4zLTIuMS0yLjMtMy44YzAtMTIuOSwwLTI1LjcsMC0zOC42YzAtMi4zLDEuNi00LDMuNy00LjIKCQkJYzIuNy0wLjMsNC41LDEsNC45LDMuNWMwLDAuMSwwLjEsMC4yLDAuMiwwLjVjMy45LTMuNSw4LjQtNC45LDEzLjQtNC42YzUuMSwwLjMsOS4xLDIuNiwxMi4yLDYuNmMxLjMtMS4xLDIuNC0yLjIsMy43LTMuMQoJCQljMi42LTEuOSw1LjUtMyw4LjctMy4zYzMuMS0wLjMsNi4yLTAuMiw5LjIsMC45YzMuNSwxLjMsNi4yLDMuNiw4LDYuOUMzMTAuNCw4Ny4yLDMxMS4xLDkwLjUsMzExLjEsOTMuOXoiLz4KCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjMwLjIsMTE5LjZjMCwyLjMtMS42LDQuMS0zLjgsNC4yYy0yLjQsMC4yLTQuNS0xLjEtNC44LTMuN2MtMC4xLTAuNy0wLjItMS41LTAuMi0yLjIKCQkJYzAtOC4xLDAuMS0xNi4zLDAtMjQuNWMtMC4xLTQuNy0yLjUtOC4zLTcuNC05LjJjLTYtMS4yLTExLjMsMi40LTEyLjIsOC42Yy0wLjEsMC43LTAuMiwxLjQtMC4yLDIuMWMwLDguMSwwLDE2LjIsMCwyNC4zCgkJCWMwLDIuMy0xLjMsNC4xLTMuNCw0LjVjLTMsMC42LTUuNS0xLjUtNS40LTQuM2MwLjEtOC4yLDAuMS0xNi41LDAtMjQuN2MwLTEuOC0wLjQtMy43LTEtNS4zYy0xLjItMy4yLTMuOC00LjgtNy4yLTUuMgoJCQljLTIuOS0wLjMtNS41LDAuMi03LjgsMmMtMi4xLDEuNi0zLjMsMy44LTMuNyw2LjRjLTAuMSwxLTAuMiwyLjEtMC4yLDMuMWMwLDcuNiwwLDE1LjIsMCwyMi44YzAsMS4yLTAuMSwyLjMtMC44LDMuNAoJCQljLTEuMiwyLTQuNiwyLjYtNi40LDEuMWMtMS4xLTEtMS43LTIuMS0xLjctMy42YzAtMTIuOCwwLTI1LjcsMC0zOC42YzAtMi4yLDEuNS0zLjgsMy43LTQuMWMyLjMtMC4zLDQuMywwLjksNC45LDIuOQoJCQljMC4xLDAuMywwLjEsMC43LDAuMiwxLjJjMy45LTMuNiw4LjQtNSwxMy40LTQuN2M1LjEsMC4zLDkuMiwyLjUsMTIuMyw2LjdjMS4yLTEuMSwyLjMtMi4yLDMuNi0zLjFjMi43LTEuOSw1LjctMyw5LTMuNAoJCQljMy4xLTAuMyw2LjEtMC4yLDksMC45YzQuNiwxLjgsNy43LDUuMiw5LjIsOS45YzAuOSwyLjYsMS4xLDUuMywxLjEsOC4xQzIzMC4yLDEwMy4zLDIzMC4yLDExMS41LDIzMC4yLDExOS42eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik01MTQuOCwxMDAuMmMwLTIuMy0wLjMtNC42LTAuOS02LjhjLTEuOC02LjUtNS44LTExLjItMTEuNy0xNC41Yy00LjctMi42LTkuOC0zLjEtMTUtMi4zCgkJCWMtNS45LDAuOC0xMC43LDMuNi0xNC41LDguMWMtMy43LDQuNC01LjQsOS42LTUuNSwxNS4yYy0wLjEsMy41LDAuNSw2LjgsMS44LDEwLjFjMS44LDQuNiw0LjcsOC4yLDguOCwxMC45CgkJCWM1LjEsMy4zLDEwLjcsMy45LDE2LjUsMi42YzMuOS0wLjgsNy4yLTIuNywxMC01LjVjMC41LTAuNSwwLjktMSwxLjUtMS41YzAuMSwxLjQsMC4xLDIuNiwwLjMsMy44YzAuMywyLjQsMi4yLDMuOCw0LjgsMy42CgkJCWMyLjItMC4xLDMuOS0xLjksMy45LTQuMkM1MTQuOCwxMTMuMiw1MTQuOCwxMDYuNyw1MTQuOCwxMDAuMnogTTUwNi4zLDEwMS45Yy0wLjUsNS42LTMuMSwxMC04LjEsMTIuN2MtMi4yLDEuMi00LjcsMS45LTcuMywxLjcKCQkJYy01LjctMC4yLTEwLTIuNy0xMi45LTcuNWMtMS43LTIuOC0yLjQtNS45LTIuMi05LjJjMC4yLTQuNywxLjgtOC44LDUuNC0xMS45YzIuNy0yLjMsNS44LTMuNSw5LjMtMy43YzIuOS0wLjEsNS42LDAuNSw4LjEsMS45CgkJCWMyLjksMS42LDQuOSwzLjksNi4zLDYuOUM1MDYuMiw5NS43LDUwNi42LDk4LjgsNTA2LjMsMTAxLjl6Ii8+CgkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTMzMi41LDEwMy4zaDE1LjhjNS4yLDAsMTAuNSwwLDE1LjgsMGMxLjcsMCwzLjktMS40LDQtMy4yYzAtMSwwLTIsMC0zYy0wLjEtMy44LTEuMS03LjMtMi45LTEwLjYKCQkJYy0yLjYtNC44LTYuNi04LTExLjktOS41Yy0zLjUtMS03LjEtMS0xMC43LTAuNWMtNC43LDAuNy04LjgsMi42LTEyLjIsNS45Yy00LjMsNC4yLTYuNCw5LjQtNi45LDE1LjNjLTAuMywzLjgsMCw3LjcsMS40LDExLjMKCQkJYzIsNS4zLDUuNSw5LjMsMTAuNiwxMmM1LDIuNiwxMC4zLDMuNCwxNS44LDIuN2M0LjMtMC42LDguMy0yLjEsMTEuOS00LjZjMi40LTEuNywyLjQtNC41LTAuMS02LjJjLTEuMy0wLjktMy41LTAuOC00LjksMC4zCgkJCWMtNCwyLjktOC40LDMuOS0xMy4zLDMuMWMtNi40LTEtMTEuOC01LjUtMTMuMi0xMkMzMzEuNCwxMDMuMywzMzEuNCwxMDMuMywzMzIuNSwxMDMuM3ogTTMzMS41LDk2LjNjMC41LTIuNywxLjUtNS4xLDMuMS03LjIKCQkJYzIuMi0yLjksNS4xLTQuNiw4LjctNS4yYzMuNi0wLjYsNy4yLTAuNCwxMC40LDEuNWMzLjIsMS45LDUuMSw0LjksNiw4LjVjMC4xLDAuNCwwLjIsMC44LDAuMywxLjJjMC4yLDAuOSwwLDEuMS0wLjksMS4xSDMzMS41eiIKCQkJLz4KCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTUwLjYsOTcuNGMtMC4yLTMuNC0xLjItNi41LTIuOS05LjVjLTIuNS00LjYtNi4zLTcuOC0xMS4yLTkuOGMtNC4zLTEuOC04LjgtMi4xLTEzLjQtMS41CgkJCWMtNC43LDAuNi04LjksMi41LTEyLjQsNS43Yy01LDQuNS03LjIsMTAuNC03LjQsMTdjLTAuMSwxLjgsMC4xLDMuNSwwLjMsNS4zYzAuNyw1LjYsMy4yLDEwLjMsNy40LDE0YzQuNiw0LDEwLjEsNS43LDE2LjEsNS43CgkJCWMzLjUsMCw2LjktMC42LDEwLjItMi4xYzQuMi0xLjgsNy40LTQuNyw5LjgtOC41YzIuNi00LDMuNi04LjUsMy43LTEzLjNDMTUwLjcsOTkuMywxNTAuNiw5OC4zLDE1MC42LDk3LjR6IE0xNDIuMywxMDEuNQoJCQljLTAuMiw0LTEuNSw3LjYtNC40LDEwLjVjLTMsMy02LjYsNC40LTEyLjIsNC40Yy00LjgtMC4xLTkuNS0yLjctMTIuMy04LjNjLTEuNS0zLTEuOS02LjMtMS42LTkuOGMwLjQtNCwxLjktNy40LDQuOC0xMC4yCgkJCWMyLjEtMiw0LjYtMy4zLDcuNS0zLjdjMy45LTAuNiw3LjctMC4xLDExLjIsMmMyLjcsMS43LDQuNiw0LjEsNS44LDcuMUMxNDIuMSw5NiwxNDIuNSw5OC43LDE0Mi4zLDEwMS41eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik00MjYuMyw5MC45Yy0xLjgsMi45LTIuNCw2LTIuMyw5LjRjLTAuMSwzLjUsMC44LDYuOCwyLjgsOS44YzIuMywzLjQsNS43LDUuNCw5LjcsNgoJCQljMy43LDAuNiw3LjQsMC4yLDEwLjctMS43YzEuMy0wLjcsMi41LTEuNiwzLjgtMi4xYzEuNS0wLjYsMy4zLDAuMyw0LjMsMmMwLjksMS40LDAuNywyLjktMC42LDRjLTEuMSwxLTIuMiwxLjktMy40LDIuNwoJCQljLTMuNCwyLjEtNy4xLDMtMTEuMSwzLjFjLTQuNCwwLjEtOC42LTAuNi0xMi41LTIuN2MtMy45LTIuMS02LjktNS05LjEtOC45Yy0yLTMuNi0zLTcuNC0zLjEtMTEuNWMtMC4xLTQuNCwwLjYtOC43LDIuNi0xMi42CgkJCWMyLjgtNS40LDcuMS05LjEsMTMtMTAuOWMyLjEtMC43LDQuMy0xLDYuNS0xLjFjNC4xLTAuMiw3LjksMC41LDExLjUsMi40YzIuNiwxLjMsNC43LDMuMSw2LjYsNS4zYzEuMiwxLjQsMS4yLDMsMC4yLDQuMwoJCQljLTEuMSwxLjUtMywyLjItNC41LDEuNmMtMC42LTAuMi0xLjMtMC42LTEuOC0xLjFjLTIuNS0yLjYtNS40LTQuMy05LjEtNC43QzQzNC45LDgzLjYsNDI5LjYsODUuNCw0MjYuMyw5MC45eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02MC43LDk0LjJjLTEuMiw0LjEtMS4yLDguMywwLjIsMTIuNGMxLjIsMy41LDMuNCw2LjIsNi44LDhjNSwyLjUsMTAsMi41LDE1LDAuMWMxLjMtMC42LDIuNS0xLjUsMy44LTIuMgoJCQljMS40LTAuNywyLjctMC4yLDMuOCwwLjdjMS4yLDEsMS43LDIuMywxLjIsMy44Yy0wLjMsMC45LTEsMS43LTEuOCwyLjNjLTMuMSwyLjYtNi42LDQuMi0xMC42LDQuN2MtNy4yLDAuOS0xMy44LTAuNC0xOS41LTUuMQoJCQljLTQuMy0zLjUtNi44LTguMS03LjgtMTMuNWMtMC4zLTEuNy0wLjQtMy40LTAuNS01LjFjLTAuMS01LjUsMS41LTEwLjUsNC42LTE0LjljMi44LTMuOSw2LjctNi42LDExLjQtOGMyLjQtMC44LDUtMS4xLDcuNS0xCgkJCWM1LjEsMC4xLDkuOCwxLjQsMTMuNyw0LjljMS4xLDEsMi4yLDIsMy4yLDMuMmMxLjEsMS4zLDEuMSwyLjYsMC4xLDRjLTEuNiwyLjEtNC4yLDIuOC02LjYsMC4zYy0xLjYtMS42LTMuMi0zLTUuNC0zLjcKCQkJYy0yLjMtMC44LTQuOC0xLTcuMi0wLjdjLTIuNiwwLjMtNSwxLjItNywyLjhDNjMuMiw4OC45LDYxLjUsOTEuMyw2MC43LDk0LjJ6Ii8+CgkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTQwOC4yLDg0LjVjLTItMC4zLTMuOS0wLjctNS45LTAuN2MtNC4yLDAtOC4yLDAuNi0xMS40LDMuNmMtMiwxLjgtMi45LDQuMS0yLjksNi44YzAsOC41LDAsMTcsMCwyNS41CgkJCWMwLDEuOS0wLjksMy4zLTIuMywzLjhjLTEuOSwwLjctNC40LDAuNC01LjQtMWMtMC41LTAuNy0wLjktMS43LTAuOS0yLjZjMC0xMy4xLTAuMS0yNi4xLDAtMzkuMmMwLTMuMSwyLjMtNC4zLDUtMy45CgkJCWMyLjcsMC4zLDMuNiwxLjcsMy42LDQuNGMwLDAuNCwwLDAuOCwwLDEuMWMxLjYtMS4yLDMtMi40LDQuNi0zLjRjMi4zLTEuNSw0LjktMi4zLDcuNi0yLjZjMi45LTAuMyw1LjgtMC4yLDguNSwwLjkKCQkJYzEuNSwwLjYsMi43LDEuMywzLjMsMi45QzQxMi43LDgxLjksNDExLjMsODUsNDA4LjIsODQuNXoiLz4KCTwvZz4KCTxnIGlkPSJHSnlTQTgudGlmIj4KCQk8Zz4KCQkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTUzNSw4Ni43YzAuMiwwLDAuNCwwLDAuNiwwYzIuMiwwLDQuMywwLDYuNSwwYzEsMCwxLjksMC4yLDIuNywwLjhjMC45LDAuNywxLjQsMS42LDEuNiwyLjgKCQkJCWMwLjMsMi0xLDMuOS0zLjEsNC40Yy0wLjQsMC4xLTAuNywwLjEtMS4xLDAuMWMtMi4yLDAtNC4zLDAtNi41LDBjLTAuMSwwLTAuMiwwLTAuMywwYy0wLjMsMC0wLjQsMC4xLTAuNCwwLjRjMCwwLjgsMCwxLjUsMCwyLjMKCQkJCWMwLDEsMCwyLjEsMCwzLjFjMCwyLjUsMCw1LDAuMSw3LjVjMC4xLDMuMywyLjQsNS45LDUuMiw2LjZjMC42LDAuMiwxLjIsMC4yLDEuOSwwLjJjMS4xLDAsMi4xLDAsMy4yLDAuMQoJCQkJYzEuNiwwLjEsMi45LDEuNCwzLjIsMi44YzAuMiwwLjgsMC4xLDEuNiwwLDIuNWMtMC4xLDAuNy0wLjMsMS40LTAuNywxLjljLTAuNiwwLjktMS41LDEuMy0yLjUsMS42Yy0xLjMsMC4zLTIuNywwLjUtNC4xLDAuNAoJCQkJYy0zLjctMC4yLTctMS40LTkuOC0zLjljLTEuOS0xLjctMy41LTMuNy00LjUtNi4xYy0wLjYtMS4zLTAuOS0yLjYtMS0zLjljLTAuMS0xLjMtMC4xLTIuNi0wLjEtMy45YzAtMi43LDAtNS4zLDAtOAoJCQkJYzAtMC44LTAuMS0xLjYtMC4xLTIuNGMwLTAuMiwwLTAuNSwwLTAuN2MwLTIuNywwLTUuNCwwLTguMWMwLTAuOCwwLTEuNiwwLTIuNGMwLTEuMywwLTIuNiwwLTMuOWMwLTAuOCwwLjEtMS42LDAuNS0yLjMKCQkJCWMwLjctMS40LDEuOC0yLjIsMy4zLTIuNGMxLjEtMC4yLDIuMiwwLDMuMiwwLjVjMS4yLDAuNywxLjksMS44LDIuMSwzLjFjMC4xLDAuMywwLjEsMC42LDAuMSwwLjljMCwxLjksMCwzLjksMCw1LjgKCQkJCUM1MzUsODYuNCw1MzUsODYuNSw1MzUsODYuN3oiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPC9zdmc+Cg==" alt="Commercat">
+    <div class="cover-grid">
+      <div>
+        <div class="cover-label">Marketing Plan · 2026–2027</div>
+        <h1 class="cover-title">From 250<br>to 10,000<br>users.</h1>
+        <p class="cover-sub">A 24-month growth plan built on organic-first content, micro-influencers, and a referral flywheel — before a single dollar on paid ads.</p>
+      </div>
+      <div class="cover-stats">
+        <div class="cs-row">
+          <span class="cs-label">Launch MAU</span>
+          <span class="cs-val">250</span>
+        </div>
+        <div class="cs-row">
+          <span class="cs-label">Year 1 end MAU</span>
+          <span class="cs-val green">3,200</span>
+        </div>
+        <div class="cs-row">
+          <span class="cs-label">Year 2 end MAU</span>
+          <span class="cs-val green">10,000</span>
+        </div>
+        <div class="cs-row">
+          <span class="cs-label">Y1 marketing spend</span>
+          <span class="cs-val accent">$33,100</span>
+        </div>
+        <div class="cs-row">
+          <span class="cs-label">Blended CAC target</span>
+          <span class="cs-val">$8–12</span>
+        </div>
+        <div class="cs-row">
+          <span class="cs-label">Marketing / revenue Y2</span>
+          <span class="cs-val green">4.0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="doc-nav">
+  <div class="doc-nav-inner">
+    <a href="#strategy">Strategy</a>
+    <a href="#phases">Phases</a>
+    <a href="#channels">Channels</a>
+    <a href="#content">Content</a>
+    <a href="#funnel">Funnel</a>
+    <a href="#budget">Budget</a>
+    <a href="#calendar">Calendar</a>
+  </div>
+</nav>
+
+<!-- ── SECTION 1: STRATEGY ── -->
+<section class="section" id="strategy">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">01 — Strategy</div>
+      <h2 class="section-title">Organic first, always.</h2>
+      <p class="section-lead">The dupe finder is inherently viral. One good screen recording acquiring a user at $0 is worth more than a $15 paid click. Every paid dollar follows proof of organic conversion — never precedes it.</p>
+    </div>
+
+    <div class="highlight">
+      <div class="highlight-stat">$0 CAC</div>
+      <div class="highlight-title">The dupe finder is the marketing</div>
+      <div class="highlight-body">When a user finds a $400 jacket for $22 and shares it on Stories, that content acquires 10–50 new users at zero cost. The product is the ad. Every piece of paid marketing exists only to amplify what organic already proves is working.</div>
+    </div>
+
+    <div class="kpi-grid-4">
+      <div class="kpi"><div class="kpi-label">Primary goal Y1</div><div class="kpi-val">3,200 MAU</div><div class="kpi-sub">from 250 warm launch</div></div>
+      <div class="kpi"><div class="kpi-label">Primary goal Y2</div><div class="kpi-val green">10,000 MAU</div><div class="kpi-sub">subscriptions + cashback active</div></div>
+      <div class="kpi"><div class="kpi-label">Y1 marketing spend</div><div class="kpi-val accent">$33,100</div><div class="kpi-sub">all channels combined</div></div>
+      <div class="kpi"><div class="kpi-label">Target blended CAC</div><div class="kpi-val">$8–12</div><div class="kpi-sub">paid + organic blended</div></div>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Strategic principles</div><div class="rule-line"></div></div>
+
+    <div class="three-col">
+      <div class="card">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--gray-mid);margin-bottom:8px;letter-spacing:1px">PRINCIPLE 01</div>
+        <div style="font-size:16px;font-weight:500;color:var(--charcoal);margin-bottom:8px">No paid until organic converts</div>
+        <div style="font-size:12px;color:var(--gray-dark);line-height:1.6">Paid ads launch in month 3 only — and only for retargeting visitors who already found us organically. Cold prospecting doesn't start until month 4, and only if organic CVR data supports it.</div>
+      </div>
+      <div class="card">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--gray-mid);margin-bottom:8px;letter-spacing:1px">PRINCIPLE 02</div>
+        <div style="font-size:16px;font-weight:500;color:var(--charcoal);margin-bottom:8px">Nano before macro</div>
+        <div style="font-size:12px;color:var(--gray-dark);line-height:1.6">Start with 3K–20K follower creators. They're cheaper, more trusted, and their audiences are more engaged. Macro influencers (200K+) don't appear until year 2 — only after nano/micro is proven and ROI-positive.</div>
+      </div>
+      <div class="card">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--gray-mid);margin-bottom:8px;letter-spacing:1px">PRINCIPLE 03</div>
+        <div style="font-size:16px;font-weight:500;color:var(--charcoal);margin-bottom:8px">Referral compounds forever</div>
+        <div style="font-size:12px;color:var(--gray-dark);line-height:1.6">Wallet credit referrals ($5 give / $5 get) activate month 3. Every referred user who orders becomes another referrer. Unlike paid ads, this channel gets cheaper per user over time, not more expensive.</div>
+      </div>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">MAU growth + marketing spend — 24 months</div><div class="rule-line"></div></div>
+
+    <div class="card">
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>MAU (left axis)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E8A020"></div>Monthly marketing spend (right axis)</div>
+        <div class="legend-item"><div class="legend-line" style="background:#534AB7"></div>Trend line</div>
+      </div>
+      <div class="chart-wrap h280"><canvas id="c-main"></canvas></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Year 1 — channel spend mix</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#E8A020"></div>Paid social</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Influencers</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Referral</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#B4B2A9"></div>Creative + other</div>
+        </div>
+        <div class="chart-wrap h220"><canvas id="c-y1pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Year 2 — channel spend mix</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#E8A020"></div>Paid social</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Influencers</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Referral</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#B4B2A9"></div>Creative + other</div>
+        </div>
+        <div class="chart-wrap h220"><canvas id="c-y2pie"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 2: PHASES ── -->
+<section class="section" id="phases">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">02 — Phases</div>
+      <h2 class="section-title">Three gears, not one.</h2>
+      <p class="section-lead">Each phase has a single primary focus. Spark builds the content machine. Scale adds paid amplification. Compound lets the flywheel run.</p>
+    </div>
+
+    <div class="phases">
+      <div class="phase phase-1">
+        <div class="phase-num">Phase 1</div>
+        <div class="phase-name">Spark</div>
+        <div class="phase-months">Months 1–3</div>
+        <div class="phase-desc">Prove the dupe finder concept. Build organic traction before spending a dollar on paid ads. Content machine is established, influencer roster seeded, first referrals in motion.</div>
+        <div class="phase-target">Target: 550 MAU · Budget: $1,200</div>
+      </div>
+      <div class="phase phase-2">
+        <div class="phase-num">Phase 2</div>
+        <div class="phase-name">Scale</div>
+        <div class="phase-months">Months 4–12</div>
+        <div class="phase-desc">Layer in paid ads once organic content is converting. Influencer roster grows to 8+ active creators. Referral flywheel compounds. Monthly spend grows from $1,000 to $4,200.</div>
+        <div class="phase-target">Target: 3,200 MAU · Budget: $28,400</div>
+      </div>
+      <div class="phase phase-3">
+        <div class="phase-num">Phase 3</div>
+        <div class="phase-name">Compound</div>
+        <div class="phase-months">Months 13–24</div>
+        <div class="phase-desc">Subscriptions live. Marketing % of revenue falls from 28% to 4% as organic and referral do the heavy lifting. First macro-influencer and new market testing.</div>
+        <div class="phase-target">Target: 10,000 MAU · Budget: ~$38,700</div>
+      </div>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Phase 1 — Spark (months 1–3)</div><div class="rule-line"></div></div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Week / Month</th><th>Activity</th><th>Channel</th><th class="r">Budget</th><th>Expected output</th></tr></thead>
+        <tbody>
+          <tr><td class="bold">Week 1–2</td><td>Launch announcement to existing community</td><td><span class="pill p-green">Owned</span></td><td class="r">$0</td><td>250 signups on day 1</td></tr>
+          <tr><td class="bold">Week 1–4</td><td>Daily dupe finder screen recording content, 3–5 posts/week</td><td><span class="pill p-green">Organic</span></td><td class="r">$0</td><td>TikTok + IG Reels, build posting habit</td></tr>
+          <tr><td class="bold">Week 2–4</td><td>Seed Facebook shopping groups — 5+ groups</td><td><span class="pill p-green">Community</span></td><td class="r">$0</td><td>Free high-intent discovery channel</td></tr>
+          <tr><td class="bold">Month 2</td><td>First 3 nano-influencer collaborations (5K–15K followers)</td><td><span class="pill p-accent">Influencer</span></td><td class="r">$300</td><td>3 × gifted orders + $50–150 fee</td></tr>
+          <tr><td class="bold">Month 3</td><td>First paid ads — retargeting only, no cold prospecting</td><td><span class="pill p-accent">Paid</span></td><td class="r">$700</td><td>Re-engage organic visitors who didn't sign up</td></tr>
+          <tr><td class="bold">Month 3</td><td>Referral program launch — $5 wallet credit both sides</td><td><span class="pill p-purple">Referral</span></td><td class="r">$200</td><td>First compound acquisition loop</td></tr>
+          <tr class="hi"><td class="bold">Phase total</td><td colspan="2">3 months of marketing activity</td><td class="r bold">$1,200</td><td>550 MAU by end of month 3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Phase 2 — Scale (months 4–12)</div><div class="rule-line"></div></div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Month</th><th>Key activity</th><th>New channel unlocked</th><th class="r">Monthly spend</th><th>MAU target</th></tr></thead>
+        <tbody>
+          <tr><td class="bold">4–5</td><td>Influencer roster grows to 8 active creators, first micro-influencers</td><td><span class="pill p-accent">Micro-influencer</span></td><td class="r">$1,000–1,400</td><td>720–950</td></tr>
+          <tr><td class="bold">5–6</td><td>Referral program fully live, wallet credits compounding</td><td><span class="pill p-purple">Referral flywheel</span></td><td class="r">+credits</td><td>950–1,200</td></tr>
+          <tr><td class="bold">6–7</td><td>Meta + TikTok cold prospecting begins — lookalike of first 500 signups</td><td><span class="pill p-accent">Paid prospecting</span></td><td class="r">$1,800–2,200</td><td>1,200–1,480</td></tr>
+          <tr><td class="bold">8–10</td><td>TikTok Shop / affiliate test, mid-tier influencer first test (60K–200K)</td><td><span class="pill p-accent">Affiliate</span></td><td class="r">$2,600–3,400</td><td>1,780–2,450</td></tr>
+          <tr><td class="bold">11–12</td><td>Pre-subscription push — build awareness of upcoming tiers, waitlist</td><td><span class="pill p-purple">Conversion</span></td><td class="r">$3,800–4,200</td><td>2,820–3,200</td></tr>
+          <tr class="hi"><td class="bold">Phase total</td><td colspan="2">9 months of scaling activity</td><td class="r bold">~$28,400</td><td>3,200 MAU by Mo 12</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Phase 3 — Compound (months 13–24)</div><div class="rule-line"></div></div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Quarter</th><th>Strategic focus</th><th>Budget direction</th><th>MAU target</th></tr></thead>
+        <tbody>
+          <tr><td class="bold">Q1 Y2 (13–15)</td><td>Subscription launch campaign. Every user who hits their search limit gets a one-time 30-day free Pro trial offer directly in chat. Conversion is the focus, not acquisition.</td><td>Paid ↓ — Retention ↑</td><td>4,600</td></tr>
+          <tr><td class="bold">Q2 Y2 (16–18)</td><td>Referral flywheel compounds. Paid CAC falls as brand recognition builds across markets. Marketing team expands with one dedicated hire.</td><td>Organic % of mix rises</td><td>6,200</td></tr>
+          <tr><td class="bold">Q3 Y2 (19–21)</td><td>New market testing. Analyse organic traffic data: if one country shows 5%+ of signups with zero paid spend, localise and launch there. First macro-influencer (200K+) collaboration.</td><td>New geo budget allocated</td><td>8,000</td></tr>
+          <tr><td class="bold">Q4 Y2 (22–24)</td><td>Peak season push. Holiday shopping / 11.11 / Black Friday campaigns. Heaviest paid investment of the year. Target 10,000 MAU by month 24 end.</td><td>Paid peaks for season</td><td>10,000</td></tr>
+          <tr class="hi"><td class="bold">Phase total</td><td colspan="2">12 months, declining marketing % of revenue</td><td class="bold">10,000 MAU</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: CHANNELS ── -->
+<section class="section" id="channels">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">03 — Channels</div>
+      <h2 class="section-title">CAC is the ranking.</h2>
+      <p class="section-lead">Channels are prioritised by cost per acquired user, not by impressions or reach. $0 organic always beats $18 paid — even if it reaches 10× fewer people.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">All channels — CAC range + activation timeline</div>
+      <div class="ch-list">
+        <div class="ch-item">
+          <div class="ch-name">Own TikTok / IG content</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:1%;background:#3C3C3B"></div></div>
+          <div class="ch-cac"><span class="pill p-green">$0</span></div>
+          <div class="ch-when">Mo 1+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">FB shopping groups</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:6%;background:#1D9E75"></div></div>
+          <div class="ch-cac">$1–4</div>
+          <div class="ch-when">Mo 1+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">Nano-influencers 3K–20K</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:16%;background:#1D9E75"></div></div>
+          <div class="ch-cac">$3–6</div>
+          <div class="ch-when">Mo 2+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">Referral / wallet credits</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:22%;background:#534AB7"></div></div>
+          <div class="ch-cac">$2–8</div>
+          <div class="ch-when">Mo 3+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">Micro-influencers 20K–60K</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:28%;background:#1D9E75"></div></div>
+          <div class="ch-cac">$5–10</div>
+          <div class="ch-when">Mo 4+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">TikTok paid ads</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:42%;background:#E8A020"></div></div>
+          <div class="ch-cac">$8–15</div>
+          <div class="ch-when">Mo 3+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">Meta (IG / Facebook) ads</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:56%;background:#E8A020"></div></div>
+          <div class="ch-cac">$10–18</div>
+          <div class="ch-when">Mo 4+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">TikTok Shop / affiliate</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:75%;background:#E24B4A"></div></div>
+          <div class="ch-cac">$10–25</div>
+          <div class="ch-when">Mo 6+</div>
+        </div>
+        <div class="ch-item">
+          <div class="ch-name">Mid-tier influencer 60K–200K</div>
+          <div class="ch-bar-wrap"><div class="ch-bar" style="width:85%;background:#E24B4A"></div></div>
+          <div class="ch-cac">$15–35</div>
+          <div class="ch-when">Mo 9+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Influencer tier</th><th>Followers</th><th>Cost/post</th><th>Start</th></tr></thead>
+          <tbody>
+            <tr><td class="bold">Nano</td><td>3K–20K</td><td>$50–150</td><td><span class="pill p-green">Mo 2</span></td></tr>
+            <tr><td class="bold">Micro</td><td>20K–60K</td><td>$150–500</td><td><span class="pill p-accent">Mo 4</span></td></tr>
+            <tr><td class="bold">Mid-tier</td><td>60K–200K</td><td>$500–2,000</td><td><span class="pill p-accent">Mo 9</span></td></tr>
+            <tr><td class="bold">Macro</td><td>200K+</td><td>$2,000+</td><td><span class="pill p-gray">Y2 only</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Paid audience</th><th>Platform</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td class="bold">Site visitors</td><td>Meta + TikTok</td><td>Retarget</td></tr>
+            <tr><td class="bold">Lookalike — signups</td><td>Meta</td><td>Prospecting</td></tr>
+            <tr><td class="bold">Shopping interest</td><td>TikTok</td><td>Prospecting</td></tr>
+            <tr><td class="bold">Competitor audiences</td><td>Meta</td><td>Conquest</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 4: CONTENT ── -->
+<section class="section" id="content">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">04 — Content</div>
+      <h2 class="section-title">Six formats. One mission.</h2>
+      <p class="section-lead">Every piece of content exists to show one thing: how much money the user could save right now. The price reveal is the hook, the content, and the CTA simultaneously.</p>
+    </div>
+
+    <div class="note">Hook rule: the price reveal must appear in the first 3 seconds. "450 GEL Zara jacket → 22 GEL on Commercat" in the first frame, before a single word is spoken.</div>
+
+    <div class="three-col">
+      <div class="content-card">
+        <div class="cc-title">Dupe finder</div>
+        <div class="cc-sub">Core format — highest priority</div>
+        <div class="cc-tags"><span class="pill p-green">$0 CAC potential</span><span class="pill p-accent">Most shared</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">Screen recording</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">Price in first 2s</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">30–60s</span></div>
+        <div class="cc-row"><span class="cc-row-label">CTA</span><span class="cc-row-val">Link in bio / comment</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">3× / week</span></div>
+      </div>
+      <div class="content-card">
+        <div class="cc-title">Haul reveal</div>
+        <div class="cc-sub">Unboxing + price reveal</div>
+        <div class="cc-tags"><span class="pill p-green">Trust builder</span><span class="pill p-purple">High saves</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">Talking head + B-roll</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">"I spent $X on Commercat"</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">60–90s</span></div>
+        <div class="cc-row"><span class="cc-row-label">CTA</span><span class="cc-row-val">Comment your item</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">1× / week</span></div>
+      </div>
+      <div class="content-card">
+        <div class="cc-title">Request challenge</div>
+        <div class="cc-sub">User-generated engagement</div>
+        <div class="cc-tags"><span class="pill p-purple">UGC driver</span><span class="pill p-accent">Comments++</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">Reply-to-comment video</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">"Send me anything"</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">30–45s</span></div>
+        <div class="cc-row"><span class="cc-row-label">CTA</span><span class="cc-row-val">Drop your item below</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">1× / week</span></div>
+      </div>
+    </div>
+    <div class="three-col">
+      <div class="content-card">
+        <div class="cc-title">Before / after</div>
+        <div class="cc-sub">Same look, fraction of price</div>
+        <div class="cc-tags"><span class="pill p-green">High saves</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">Split screen</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">Brand price vs Commercat</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">15–30s</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">1× / 2 weeks</span></div>
+      </div>
+      <div class="content-card">
+        <div class="cc-title">Seasonal finds</div>
+        <div class="cc-sub">Trend + timing</div>
+        <div class="cc-tags"><span class="pill p-purple">Timely reach</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">Multi-item compilation</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">"Everything you need for X"</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">45–60s</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">Seasonal peaks</span></div>
+      </div>
+      <div class="content-card">
+        <div class="cc-title">Testimonial clips</div>
+        <div class="cc-sub">Social proof at scale</div>
+        <div class="cc-tags"><span class="pill p-green">Conversion</span></div>
+        <div class="cc-row"><span class="cc-row-label">Format</span><span class="cc-row-val">User repost + reaction</span></div>
+        <div class="cc-row"><span class="cc-row-label">Hook</span><span class="cc-row-val">Real order, real savings</span></div>
+        <div class="cc-row"><span class="cc-row-label">Length</span><span class="cc-row-val">20–30s</span></div>
+        <div class="cc-row"><span class="cc-row-label">Frequency</span><span class="cc-row-val">1× / week</span></div>
+      </div>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Content → conversion map</div><div class="rule-line"></div></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Format</th><th>Primary goal</th><th>Track this</th><th>Conversion path</th></tr></thead>
+        <tbody>
+          <tr><td class="bold">Dupe finder</td><td>Awareness + virality</td><td>Shares, saves</td><td>Link in bio → signup</td></tr>
+          <tr><td class="bold">Haul reveal</td><td>Trust + consideration</td><td>Comments, profile visits</td><td>DM → direct signup</td></tr>
+          <tr><td class="bold">Request challenge</td><td>Engagement + UGC</td><td>Comments, replies</td><td>Reply → DM → app</td></tr>
+          <tr><td class="bold">Before / after</td><td>Save + purchase intent</td><td>Saves, link clicks</td><td>Saved → revisit → signup</td></tr>
+          <tr><td class="bold">Testimonials</td><td>Conversion</td><td>Profile visits, follows</td><td>Social proof → direct signup</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 5: FUNNEL ── -->
+<section class="section" id="funnel">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">05 — Funnel</div>
+      <h2 class="section-title">Impression to order.</h2>
+      <p class="section-lead">The full acquisition funnel from organic impression to retained user, plus the 30-day activation sequence that converts signups into buyers.</p>
+    </div>
+
+    <div class="kpi-grid-4">
+      <div class="kpi"><div class="kpi-label">Visitor → signup CVR</div><div class="kpi-val">12–18%</div><div class="kpi-sub">landing page target</div></div>
+      <div class="kpi"><div class="kpi-label">Signup → first order</div><div class="kpi-val">35–45%</div><div class="kpi-sub">within 7 days</div></div>
+      <div class="kpi"><div class="kpi-label">Free → paid (mo 13+)</div><div class="kpi-val green">72%</div><div class="kpi-sub">at subscription launch</div></div>
+      <div class="kpi"><div class="kpi-label">Trial → retained</div><div class="kpi-val">60–70%</div><div class="kpi-sub">after free Pro month</div></div>
+    </div>
+
+    <div class="rule"><div class="rule-line"></div><div class="rule-text">Acquisition funnel — month 12 snapshot (3,200 MAU steady state)</div><div class="rule-line"></div></div>
+
+    <div class="card">
+      <div class="funnel">
+        <div class="fn-row">
+          <div class="fn-label">Monthly reach</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:100%;background:#3C3C3B"><span class="fn-bar-text">~280,000 organic impressions / month</span></div></div>
+          <div class="fn-val">280K</div>
+        </div>
+        <div class="fn-row">
+          <div class="fn-label">Profile visits</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:70%;background:#534AB7"><span class="fn-bar-text">~42,000 — 15% of reach</span></div></div>
+          <div class="fn-val">42K</div>
+        </div>
+        <div class="fn-row">
+          <div class="fn-label">Landing page</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:30%;background:#1D9E75"><span class="fn-bar-text">~12,600 — 30% click through</span></div></div>
+          <div class="fn-val">12.6K</div>
+        </div>
+        <div class="fn-row">
+          <div class="fn-label">Signups</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:12%;background:#0F6E56"><span class="fn-bar-text">~1,900 — 15% CVR</span></div></div>
+          <div class="fn-val">1,900</div>
+        </div>
+        <div class="fn-row">
+          <div class="fn-label">First order placed</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:5%;background:#E8A020"><span class="fn-bar-text">~760 — 40% of signups</span></div></div>
+          <div class="fn-val">760</div>
+        </div>
+        <div class="fn-row">
+          <div class="fn-label">Retained at 30 days</div>
+          <div class="fn-bar-outer"><div class="fn-bar-inner" style="width:3.5%;background:#BA7517"><span class="fn-bar-text">~530 — 70% retention</span></div></div>
+          <div class="fn-val">530</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Day</th><th>Touchpoint</th><th>Goal</th></tr></thead>
+          <tbody>
+            <tr><td class="bold">Day 0</td><td>Welcome message in chat + onboarding</td><td>First search</td></tr>
+            <tr><td class="bold">Day 1–3</td><td>Re-engagement if no search yet</td><td>Activation</td></tr>
+            <tr><td class="bold">Day 7</td><td>Order update if placed / nudge if not</td><td>Retention</td></tr>
+            <tr><td class="bold">Day 14</td><td>Search limit hit → free Pro trial offer</td><td>Upgrade</td></tr>
+            <tr><td class="bold">Day 30</td><td>Referral program invite</td><td>Virality</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Retention lever</th><th>Mechanic</th></tr></thead>
+          <tbody>
+            <tr><td class="bold">Order status updates</td><td>In-chat re-engagement after purchase</td></tr>
+            <tr><td class="bold">Price drop alerts</td><td>Pro feature — push + chat notification</td></tr>
+            <tr><td class="bold">Wallet cashback</td><td>Accrues every order, not withdrawable</td></tr>
+            <tr><td class="bold">Dupe of the week</td><td>Weekly push — builds visit habit</td></tr>
+            <tr><td class="bold">Saved searches</td><td>Notify on restock — reduces abandonment</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 6: BUDGET ── -->
+<section class="section" id="budget">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">06 — Budget</div>
+      <h2 class="section-title">Marketing as % of revenue.</h2>
+      <p class="section-lead">Year 1 spends 27.9% of revenue on marketing. Year 2 spends 4.0%. This isn't a cost problem — it's the flywheel working as designed.</p>
+    </div>
+
+    <div class="kpi-grid-4">
+      <div class="kpi"><div class="kpi-label">Y1 total spend</div><div class="kpi-val accent">$33,100</div><div class="kpi-sub">all channels</div></div>
+      <div class="kpi"><div class="kpi-label">Y1 % of revenue</div><div class="kpi-val">27.9%</div><div class="kpi-sub">$118K revenue base</div></div>
+      <div class="kpi"><div class="kpi-label">Y2 total spend</div><div class="kpi-val accent">~$38,700</div><div class="kpi-sub">est. — growing absolute</div></div>
+      <div class="kpi"><div class="kpi-label">Y2 % of revenue</div><div class="kpi-val green">4.0%</div><div class="kpi-sub">$980K revenue base</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Year 1 — monthly spend by channel (months 1–12)</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#E8A020"></div>Paid social</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Influencers</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Referral credits</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#B4B2A9"></div>Creative + other</div>
+      </div>
+      <div class="chart-wrap h280"><canvas id="c-budget"></canvas></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Year 1 budget breakdown</div>
+        <div class="budget-list">
+          <div class="budget-item"><div class="budget-label">Paid social (Meta + TikTok)</div><div class="budget-bar-wrap"><div class="budget-bar" style="width:100%;background:#E8A020"></div></div><div class="budget-val">$14,800</div></div>
+          <div class="budget-item"><div class="budget-label">Influencer fees</div><div class="budget-bar-wrap"><div class="budget-bar" style="width:62%;background:#1D9E75"></div></div><div class="budget-val">$9,200</div></div>
+          <div class="budget-item"><div class="budget-label">Referral wallet credits</div><div class="budget-bar-wrap"><div class="budget-bar" style="width:37%;background:#534AB7"></div></div><div class="budget-val">$5,400</div></div>
+          <div class="budget-item"><div class="budget-label">Creative production</div><div class="budget-bar-wrap"><div class="budget-bar" style="width:16%;background:#B4B2A9"></div></div><div class="budget-val">$2,400</div></div>
+          <div class="budget-item"><div class="budget-label">PR / community</div><div class="budget-bar-wrap"><div class="budget-bar" style="width:9%;background:#3C3C3B"></div></div><div class="budget-val">$1,300</div></div>
+          <div class="budget-item" style="padding-top:14px;margin-top:4px;border-top:1px solid var(--gray-light)">
+            <div class="budget-label" style="font-weight:500;color:var(--charcoal)">Total Year 1</div>
+            <div class="budget-bar-wrap"><div class="budget-bar" style="width:100%;background:#3C3C3B"></div></div>
+            <div class="budget-val" style="font-weight:500;color:var(--charcoal)">$33,100</div>
+          </div>
+        </div>
+      </div>
+      <div class="tbl-wrap" style="margin-bottom:0">
+        <table>
+          <thead><tr><th>Period</th><th class="r">Spend</th><th class="r">Revenue</th><th class="r">% ratio</th></tr></thead>
+          <tbody>
+            <tr><td class="bold">Mo 1–3</td><td class="r">$1,200</td><td class="r">$9,003</td><td class="r g">13.3%</td></tr>
+            <tr><td class="bold">Mo 4–6</td><td class="r">$4,200</td><td class="r">$29,787</td><td class="r g">14.1%</td></tr>
+            <tr><td class="bold">Mo 7–9</td><td class="r">$9,600</td><td class="r">$72,388</td><td class="r g">13.3%</td></tr>
+            <tr><td class="bold">Mo 10–12</td><td class="r">$11,400</td><td class="r">$238,756</td><td class="r g">4.8%</td></tr>
+            <tr class="hi"><td class="bold">Year 1</td><td class="r bold">$33,100</td><td class="r bold">$118,544</td><td class="r bold">27.9%</td></tr>
+            <tr class="hi"><td class="bold">Year 2</td><td class="r bold">~$38,700</td><td class="r bold">$979,936</td><td class="r g bold">4.0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 7: CALENDAR ── -->
+<section class="section" id="calendar">
+  <div class="page">
+    <div class="section-header">
+      <div class="section-num">07 — Calendar</div>
+      <h2 class="section-title">24 months, week by week.</h2>
+      <p class="section-lead">Key milestones, channel activations, and decision points across the full two-year plan.</p>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="timeline">
+          <div class="tl-line"></div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-mo">Month 1</div>
+            <div class="tl-title">Launch day</div>
+            <div class="tl-desc">Announcement to existing community. Daily dupe finder content begins. Facebook shopping groups seeded. Target: 250 active users on day 1.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-mo">Month 2</div>
+            <div class="tl-title">First influencer campaign</div>
+            <div class="tl-desc">3 nano-influencers briefed (5K–15K followers). Dupe finder format. Gifted orders + $50–150 fee each. PR outreach to shopping press begins.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-mo">Month 3</div>
+            <div class="tl-title">Paid ads launch + referral program</div>
+            <div class="tl-desc">First $700 on TikTok — retargeting only. Referral live: $5 wallet credit for referrer, $5 discount for new user. Influencer roster grows to 5.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-mo">Month 4–5</div>
+            <div class="tl-title">Paid social scale-up</div>
+            <div class="tl-desc">Meta ads launched alongside TikTok. Lookalike audiences built from first 500 signups. Influencer roster: 8 active creators. First micro-influencer test.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-mo">Month 6</div>
+            <div class="tl-title">1,200 MAU — mid-year review</div>
+            <div class="tl-desc">Channel efficiency review. Kill lowest-performing channels. BOG Pay rate negotiation begins. TikTok Shop / affiliate test starts.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-mo">Month 9</div>
+            <div class="tl-title">VAT threshold + mid-tier influencer test</div>
+            <div class="tl-desc">2,100 MAU. Commission crosses 100K GEL — VAT registration. Marketing budget increases to $3,000/mo. First mid-tier influencer (60K–200K) test.</div>
+          </div>
+          <div class="tl-item" style="padding-bottom:0">
+            <div class="tl-dot"></div>
+            <div class="tl-mo">Month 12</div>
+            <div class="tl-title">Year 1 close — subscription preview</div>
+            <div class="tl-desc">3,200 MAU. Pre-announcement of subscription tiers. Waitlist mechanic for early adopters. $59,654 cumulative net profit in bank.</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="timeline">
+          <div class="tl-line"></div>
+          <div class="tl-item">
+            <div class="tl-dot key"></div>
+            <div class="tl-mo">Month 13 — KEY MOMENT</div>
+            <div class="tl-title">Monetisation flip</div>
+            <div class="tl-desc">Subscriptions go live. Every user who hits their daily search limit gets a one-time 30-day free Pro trial offer in chat. Revenue nearly triples overnight. Forwarder cashback activates.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-mo">Month 15–18</div>
+            <div class="tl-title">Organic flywheel in full effect</div>
+            <div class="tl-desc">4,600–6,200 MAU. Paid % of spend falls as referral and organic compound. Marketing team expands to 1 dedicated hire. First macro-influencer (200K+) collaboration.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-mo">Month 21</div>
+            <div class="tl-title">New market evaluation</div>
+            <div class="tl-desc">8,000 MAU. Review: which countries show organic signups with zero paid spend? If one market clears 5% of total signups → localise and launch. First real geo-expansion decision.</div>
+          </div>
+          <div class="tl-item" style="padding-bottom:0">
+            <div class="tl-dot key"></div>
+            <div class="tl-mo">Month 22–24 — KEY MOMENT</div>
+            <div class="tl-title">Peak season push</div>
+            <div class="tl-desc">Holiday shopping, 11.11, Black Friday campaigns. Heaviest paid investment of Y2. Target 10,000 MAU by month 24. $91,982 net profit per month at end.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="doc-footer">
+  <div class="footer-brand">Commercat — Marketing Plan 2026–2027</div>
+  <div class="footer-note">Confidential · Generated April 2026</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const mo12 = ['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12'];
+const mo24 = ['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24'];
+const mau = [250,380,550,720,950,1200,1480,1780,2100,2450,2820,3200,3650,4100,4600,5100,5650,6200,6800,7400,8000,8650,9300,10000];
+const spend = [200,300,700,1000,1400,1800,2200,2600,3000,3400,3800,4200,4000,3800,3600,3400,3200,3000,2900,2800,2800,2700,2700,2600];
+const gc = 'rgba(0,0,0,0.05)';
+const tc = {color:'#888780',font:{size:10,family:"'DM Mono', monospace"}};
+const fmt = v => v>=1000?'$'+Math.round(v/1000)+'K':'$'+v;
+
+new Chart(document.getElementById('c-main'),{type:'bar',data:{labels:mo24,datasets:[
+  {label:'MAU',data:mau,backgroundColor:'rgba(29,158,117,0.35)',borderRadius:2,yAxisID:'y1'},
+  {label:'Spend',data:spend,backgroundColor:'rgba(232,160,32,0.5)',borderRadius:2,yAxisID:'y2'},
+  {label:'Trend',data:mau,type:'line',borderColor:'#534AB7',backgroundColor:'transparent',pointRadius:0,tension:0.35,yAxisID:'y1',borderWidth:2}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+  x:{grid:{display:false},ticks:{...tc,callback:(v,i)=>i%2===0?mo24[i]:'',autoSkip:false,maxRotation:0}},
+  y1:{grid:{color:gc},ticks:{...tc,callback:v=>v>=1000?Math.round(v/1000)+'K':v},position:'left',title:{display:true,text:'MAU',color:'#888780',font:{size:10}}},
+  y2:{grid:{display:false},ticks:{color:'#BA7517',font:{size:10,family:"'DM Mono',monospace"},callback:fmt},position:'right',title:{display:true,text:'Monthly spend',color:'#BA7517',font:{size:10}}}
+}}});
+
+const pieOpts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' $'+c.parsed.toLocaleString()}}}};
+new Chart(document.getElementById('c-y1pie'),{type:'doughnut',data:{labels:['Paid social','Influencers','Referral','Creative+other'],datasets:[{data:[14800,9200,5400,3700],backgroundColor:['#E8A020','#1D9E75','#534AB7','#B4B2A9'],borderWidth:2,borderColor:'#F8F7F4'}]},options:pieOpts});
+new Chart(document.getElementById('c-y2pie'),{type:'doughnut',data:{labels:['Paid social','Influencers','Referral','Creative+other'],datasets:[{data:[16000,11000,7200,4500],backgroundColor:['#E8A020','#1D9E75','#534AB7','#B4B2A9'],borderWidth:2,borderColor:'#F8F7F4'}]},options:pieOpts});
+
+new Chart(document.getElementById('c-budget'),{type:'bar',data:{labels:mo12,datasets:[
+  {label:'Paid social',data:[0,0,350,500,700,900,1100,1300,1500,1700,1900,2100],backgroundColor:'#E8A020',stack:'s',borderRadius:2},
+  {label:'Influencers',data:[0,150,200,300,400,550,700,850,900,950,1000,1100],backgroundColor:'#1D9E75',stack:'s',borderRadius:2},
+  {label:'Referral',data:[0,0,100,150,250,300,350,400,500,700,800,900],backgroundColor:'#534AB7',stack:'s',borderRadius:2},
+  {label:'Creative',data:[200,150,50,50,50,50,50,50,100,50,100,100],backgroundColor:'#B4B2A9',stack:'s',borderRadius:2},
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+  x:{stacked:true,grid:{display:false},ticks:{...tc,autoSkip:false,maxRotation:0}},
+  y:{stacked:true,grid:{color:gc},ticks:{...tc,callback:fmt}}
+}}});
+</script>
+</body>
+</html>
