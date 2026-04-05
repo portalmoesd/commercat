@@ -32,6 +32,8 @@ export default function LoginPage() {
       return;
     }
 
+    // Small delay to let the cookie be set before navigation
+    await new Promise((resolve) => setTimeout(resolve, 100));
     window.location.href = redirectTo;
   }
 
