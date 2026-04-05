@@ -7,7 +7,7 @@ import {
   SYSTEM_PROMPT,
   type FilteredProduct,
 } from "@/lib/claude";
-import { searchByKeyword } from "@/lib/elimapi";
+import { searchByKeyword, searchByImage } from "@/lib/elimapi";
 import { checkAndIncrementSearchCount } from "@/lib/search-limit";
 import { getFxRates } from "@/lib/currency";
 import { calculatePrice } from "@/lib/pricing";
@@ -151,8 +151,9 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Check for search intent
-          if (fullResponse.includes("[SEARCH_INTENT]")) {
+          // Check for search intent (text search or image upload)
+          const isImageSearch = !!image_base64;
+          if (fullResponse.includes("[SEARCH_INTENT]") || isImageSearch) {
             // Check search limit
             const limitStatus = await checkAndIncrementSearchCount(
               authUser.id,
@@ -179,22 +180,30 @@ export async function POST(req: NextRequest) {
                 )
               );
 
-              // Translate query to Chinese
-              const chineseTerms = await translateQuery(message, sizeProfile);
+              let allProducts;
+              let chineseTerms: string[] = [];
 
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ type: "status", content: "Finding products..." })}\n\n`
-                )
-              );
+              if (isImageSearch) {
+                // Image search: convert base64 to data URL for Elimapi
+                const imageUrl = `data:image/jpeg;base64,${image_base64}`;
+                allProducts = await searchByImage(imageUrl, "taobao" as Platform);
+              } else {
+                // Text search: translate query to Chinese
+                chineseTerms = await translateQuery(message, sizeProfile);
 
-              // Search Elimapi with translated terms
-              const searchResults = await Promise.all(
-                chineseTerms.map((term) =>
-                  searchByKeyword(term, "taobao" as Platform)
-                )
-              );
-              const allProducts = searchResults.flat();
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "status", content: "Finding products..." })}\n\n`
+                  )
+                );
+
+                const searchResults = await Promise.all(
+                  chineseTerms.map((term) =>
+                    searchByKeyword(term, "taobao" as Platform)
+                  )
+                );
+                allProducts = searchResults.flat();
+              }
 
               // Filter and rank via Claude
               const filtered = await filterResults(message, allProducts);

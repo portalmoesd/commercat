@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useCurrency } from "@/lib/currency-context";
 import { getCurrencyInfo } from "@/lib/currency";
 import type { Order, OrderStatus } from "@/types";
@@ -23,8 +24,13 @@ const STATUS_CONFIG: Record<
 const STATUS_STEPS: OrderStatus[] = ["paid", "purchased", "shipped", "at_warehouse"];
 
 export default function OrdersPage() {
+  const searchParams = useSearchParams();
+  const paymentStatus = searchParams.get("payment");
+  const paymentOrderId = searchParams.get("order");
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBanner, setShowBanner] = useState(!!paymentStatus);
   const { currencyCode } = useCurrency();
 
   useEffect(() => {
@@ -76,6 +82,29 @@ export default function OrdersPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Payment status banner */}
+        {showBanner && paymentStatus && (
+          <div
+            className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-center justify-between ${
+              paymentStatus === "success"
+                ? "bg-green-light text-green-dark"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
+            <span>
+              {paymentStatus === "success"
+                ? "Payment confirmed! We'll purchase your item within 24 hours."
+                : "Payment was not completed. Please try again from your basket."}
+            </span>
+            <button
+              onClick={() => setShowBanner(false)}
+              className="ml-3 text-current opacity-60 hover:opacity-100"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
         <h1 className="text-lg font-medium mb-6">Your orders</h1>
 
         {orders.length === 0 ? (

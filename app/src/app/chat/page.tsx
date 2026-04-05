@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ChatWindow, type ChatMessage } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { BasketPanel, type BasketItem } from "@/components/basket/BasketPanel";
@@ -14,6 +14,32 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const { currencyCode } = useCurrency();
+
+  // Load most recent conversation on mount
+  useEffect(() => {
+    async function loadConversation() {
+      try {
+        const response = await fetch("/api/conversations");
+        if (!response.ok) return;
+        const data = await response.json();
+        const conversations = data.conversations ?? [];
+        if (conversations.length > 0) {
+          const latest = conversations[0];
+          const msgs = (latest.messages ?? []).map(
+            (m: { id: string; role: string; content: string; timestamp: string }) => ({
+              ...m,
+              timestamp: new Date(m.timestamp),
+            })
+          );
+          setMessages(msgs);
+          setConversationId(latest.id);
+        }
+      } catch {
+        // Silently fail — user will start a new conversation
+      }
+    }
+    loadConversation();
+  }, []);
 
   // Basket state
   const [basketItems, setBasketItems] = useState<BasketItem[]>([]);

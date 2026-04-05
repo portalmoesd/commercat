@@ -28,7 +28,13 @@ export default function SettingsPage() {
         .eq("id", user.id)
         .single();
 
-      if (data) setProfile(data);
+      if (data) {
+        setProfile(data);
+        // Sync currency context with DB-stored preference
+        if (data.preferred_currency) {
+          setCurrency(data.preferred_currency);
+        }
+      }
       setLoading(false);
     }
     loadProfile();
