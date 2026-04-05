@@ -4,9 +4,13 @@ import {
   streamChatGenerator,
   translateQuery,
   filterResults,
-  SYSTEM_PROMPT,
   type FilteredProduct,
-} from "@/lib/claude";
+} from "@/lib/gemini";
+import {
+  searchByImage as lensSearch,
+  extractSearchTerms,
+  findBrandPrice,
+} from "@/lib/lens";
 import { searchByKeyword, searchByImage } from "@/lib/elimapi";
 import { checkAndIncrementSearchCount } from "@/lib/search-limit";
 import { getFxRates } from "@/lib/currency";
@@ -21,7 +25,7 @@ import type {
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth — same pattern as /api/orders (which works)
+    // Auth
     const supabase = await createSupabaseServerClient();
     const {
       data: { user: authUser },
@@ -116,13 +120,13 @@ export async function POST(req: NextRequest) {
     };
     messages.push(userMessage);
 
-    // Build Anthropic message format
-    const anthropicMessages = messages.slice(0, -1).map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
+    // Build Gemini history format (role: 'user' | 'model')
+    const geminiHistory = messages.slice(0, -1).map((m) => ({
+      role: (m.role === "assistant" ? "model" : "user") as "user" | "model",
+      parts: [{ text: m.content }],
     }));
 
-    // Detect image media type from base64 header bytes
+    // Detect image media type
     let imageMediaType = "image/jpeg";
     if (image_base64) {
       if (image_base64.startsWith("iVBOR")) imageMediaType = "image/png";
@@ -130,43 +134,47 @@ export async function POST(req: NextRequest) {
       else if (image_base64.startsWith("UklGR")) imageMediaType = "image/webp";
     }
 
-    // For the latest user message, include image if provided
-    if (image_base64) {
-      anthropicMessages.push({
-        role: "user" as const,
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: imageMediaType,
-              data: image_base64,
-            },
-          },
-          {
-            type: "text",
-            text: message || "What is this? Find similar products.",
-          },
-        ] as unknown as string,
-      });
-    } else {
-      anthropicMessages.push({
-        role: "user" as const,
-        content: message,
-      });
-    }
-
     // Stream response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Stream Claude response using async generator
+          // If image uploaded, run Lens search in parallel with Gemini streaming
+          let lensPromise: Promise<{
+            brandPrice: { price: string; source: string } | null;
+            searchTerms: string[];
+            imageUrl: string | null;
+          }> | null = null;
+
+          if (image_base64) {
+            lensPromise = (async () => {
+              try {
+                // Upload to Supabase Storage
+                const { uploadImage } = await import("@/lib/storage");
+                const imageUrl = await uploadImage(image_base64!, authUser.id);
+
+                // Run Google Lens
+                const lensMatches = await lensSearch(imageUrl);
+                const brandPrice = findBrandPrice(lensMatches);
+                const searchTerms = extractSearchTerms(lensMatches);
+
+                return { brandPrice, searchTerms, imageUrl };
+              } catch (err) {
+                console.error("Lens search failed:", err);
+                return { brandPrice: null, searchTerms: [], imageUrl: null };
+              }
+            })();
+          }
+
+          // Stream Gemini response
           let fullResponse = "";
+          const userText = message || "What is this? Find similar products.";
 
           for await (const text of streamChatGenerator(
-            anthropicMessages,
-            SYSTEM_PROMPT
+            geminiHistory,
+            userText,
+            image_base64,
+            imageMediaType
           )) {
             fullResponse += text;
 
@@ -182,7 +190,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Check for search intent (text search or image upload)
+          // Check for search intent
           const isImageSearch = !!image_base64;
           if (fullResponse.includes("[SEARCH_INTENT]") || isImageSearch) {
             const limitStatus = await checkAndIncrementSearchCount(
@@ -208,48 +216,57 @@ export async function POST(req: NextRequest) {
                 )
               );
 
-              let allProducts;
+              let allProducts: NormalisedProduct[] = [];
               let chineseTerms: string[] = [];
+              let brandPrice: { price: string; source: string } | null = null;
 
-              if (isImageSearch) {
+              if (isImageSearch && lensPromise) {
+                // Wait for Lens results
+                const lensResult = await lensPromise;
+                brandPrice = lensResult.brandPrice;
+
                 controller.enqueue(
                   encoder.encode(
                     `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
                   )
                 );
 
-                // Use Claude's description to generate search terms
-                chineseTerms = await translateQuery(
-                  fullResponse || message || "similar product",
-                  sizeProfile
-                );
+                // Use Lens search terms if available, fallback to Gemini description
+                const termsToTranslate =
+                  lensResult.searchTerms.length > 0
+                    ? lensResult.searchTerms
+                    : [fullResponse || message || "similar product"];
 
-                // Upload image to Supabase for a public URL
-                let imageUrl: string | null = null;
-                try {
-                  const { uploadImage } = await import("@/lib/storage");
-                  imageUrl = await uploadImage(image_base64!, authUser.id);
-                } catch {
-                  // Image upload failed — continue with text search only
+                // Translate and search
+                for (const term of termsToTranslate.slice(0, 2)) {
+                  const cnTerms = await translateQuery(term, sizeProfile);
+                  chineseTerms.push(...cnTerms);
                 }
 
-                // Search both platforms with keywords + try image search on Taobao
-                const searchPromises = chineseTerms.map((term) =>
+                const searchPromises = chineseTerms.slice(0, 4).map((term) =>
                   searchByKeyword(term, "1688" as Platform)
                 );
 
-                // If we have a public image URL, also do Taobao image search
-                if (imageUrl) {
+                // Also try Taobao image search if we have a URL
+                if (lensResult.imageUrl) {
                   searchPromises.push(
-                    searchByImage(imageUrl, "taobao" as Platform, chineseTerms[0])
+                    searchByImage(
+                      lensResult.imageUrl,
+                      "taobao" as Platform,
+                      chineseTerms[0]
+                    )
                   );
                 }
 
                 const searchResults = await Promise.allSettled(searchPromises);
                 allProducts = searchResults
                   .filter((r) => r.status === "fulfilled")
-                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
+                  .flatMap(
+                    (r) =>
+                      (r as PromiseFulfilledResult<NormalisedProduct[]>).value
+                  );
               } else {
+                // Text search
                 chineseTerms = await translateQuery(message, sizeProfile);
 
                 controller.enqueue(
@@ -266,8 +283,10 @@ export async function POST(req: NextRequest) {
                 allProducts = searchResults.flat();
               }
 
+              // Filter with Gemini
               const filtered = await filterResults(message, allProducts);
 
+              // Calculate prices
               const rates = await getFxRates();
               const fxRate = rates[currency] ?? rates["USD"];
 
@@ -298,12 +317,14 @@ export async function POST(req: NextRequest) {
                 }
               );
 
+              // Send product cards + brand price if available
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({
                     type: "product_cards",
                     products: processedProducts,
                     query_cn: chineseTerms,
+                    brand_price: brandPrice,
                   })}\n\n`
                 )
               );

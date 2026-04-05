@@ -160,6 +160,7 @@ export default function ChatPage() {
         const decoder = new TextDecoder();
         let assistantText = "";
         let products: ProcessedProduct[] | undefined;
+        let brandPrice: { price: string; source: string } | null = null;
         let isSearchLimit = false;
         let searchLimitData:
           | { count: number; limit: number; trialClaimed: boolean }
@@ -186,6 +187,7 @@ export default function ChatPage() {
 
                 case "product_cards":
                   products = data.products;
+                  brandPrice = data.brand_price ?? null;
                   break;
 
                 case "search_limit":
@@ -222,6 +224,7 @@ export default function ChatPage() {
           role: "assistant",
           content: assistantText,
           products,
+          brandPrice,
           isSearchLimit,
           searchLimitData,
           timestamp: new Date(),

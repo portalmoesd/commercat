@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ProcessedProduct, OrderTracking } from "@/types";
 import { ProductCardRow } from "./ProductCardRow";
+import { DupePriceReveal } from "./DupePriceReveal";
 import { SearchLimitPrompt } from "./SearchLimitPrompt";
 import { TrackingCard } from "./TrackingCard";
 
@@ -12,6 +13,7 @@ export interface ChatMessage {
   content: string;
   imagePreview?: string; // data URL for uploaded image
   products?: ProcessedProduct[];
+  brandPrice?: { price: string; source: string } | null;
   trackingInfo?: OrderTracking;
   isSearchLimit?: boolean;
   searchLimitData?: {
@@ -85,6 +87,16 @@ export function ChatWindow({
                 .trim()}
             </div>
           </div>
+
+          {/* Dupe price reveal */}
+          {msg.brandPrice && msg.products && msg.products.length > 0 && (
+            <div className="mt-3">
+              <DupePriceReveal
+                brandPrice={msg.brandPrice}
+                commercatTotal={`${msg.products[0].currency === "USD" ? "$" : msg.products[0].currency}${msg.products[0].total_local.toFixed(2)}`}
+              />
+            </div>
+          )}
 
           {/* Product cards */}
           {msg.products && msg.products.length > 0 && (
