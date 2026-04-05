@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type KeyboardEvent, type ChangeEvent } from "react";
+import { useState, useRef, type KeyboardEvent, type ChangeEvent, type ClipboardEvent } from "react";
 
 interface ChatInputProps {
   onSend: (message: string, imageBase64?: string, imagePreview?: string) => void;
@@ -37,21 +37,37 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }
 
-  function handleImageUpload(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function processImageFile(file: File) {
+    if (!file.type.startsWith("image/")) return;
 
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
       setImagePreview(result);
-      // Strip data URL prefix for base64
       setImageBase64(result.split(",")[1]);
     };
     reader.readAsDataURL(file);
+  }
 
-    // Reset input so same file can be selected again
+  function handleImageUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processImageFile(file);
     e.target.value = "";
+  }
+
+  function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) processImageFile(file);
+        return;
+      }
+    }
   }
 
   function handleChipClick(label: string) {
@@ -136,8 +152,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           disabled={disabled}
-          placeholder="What are you looking for?"
+          placeholder="What are you looking for? (paste an image with Ctrl+V)"
           rows={1}
           className="flex-1 resize-none rounded-lg border border-gray-light px-3 py-2.5 text-sm bg-cream placeholder:text-gray-mid focus:outline-none focus:border-charcoal transition-colors disabled:opacity-40"
         />
