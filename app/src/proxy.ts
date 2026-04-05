@@ -11,9 +11,14 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check for Supabase auth session cookie
-  const hasSession = request.cookies.getAll().some(
+  // @supabase/ssr stores cookies with the pattern: sb-{ref}-auth-token
+  // It may also chunk them: sb-{ref}-auth-token.0, sb-{ref}-auth-token.1, etc.
+  const allCookies = request.cookies.getAll();
+  const hasSession = allCookies.some(
     (cookie) =>
-      cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token")
+      cookie.name.includes("auth-token") ||
+      cookie.name.includes("access-token") ||
+      cookie.name.includes("refresh-token")
   );
 
   // Redirect unauthenticated users away from protected routes
