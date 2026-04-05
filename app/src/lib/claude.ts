@@ -30,20 +30,45 @@ When a user asks about their order status (e.g. "where is my order", "track my o
 [TRACKING_INTENT]
 Then provide a natural response about checking their order.`;
 
-// ── Streaming Chat ──
+// ── Non-streaming Chat (returns full text) ──
 
-export async function streamChat(
+export async function chatCompletion(
   messages: Anthropic.MessageParam[],
   systemPrompt: string = SYSTEM_PROMPT
-): Promise<ReadableStream<Uint8Array>> {
-  const stream = await client.messages.stream({
+): Promise<string> {
+  const response = await client.messages.create({
     model: MODEL,
     max_tokens: 1024,
     system: systemPrompt,
     messages,
   });
 
-  return stream.toReadableStream();
+  const text =
+    response.content[0].type === "text" ? response.content[0].text : "";
+  return text;
+}
+
+// ── Streaming Chat (yields text chunks) ──
+
+export async function* streamChatGenerator(
+  messages: Anthropic.MessageParam[],
+  systemPrompt: string = SYSTEM_PROMPT
+): AsyncGenerator<string> {
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      yield event.delta.text;
+    }
+  }
 }
 
 // ── Query Translation ──
@@ -52,9 +77,10 @@ export async function translateQuery(
   query: string,
   sizeProfile?: Record<string, string>
 ): Promise<string[]> {
-  const sizeContext = sizeProfile && Object.keys(sizeProfile).length > 0
-    ? `\nUser's size profile: ${JSON.stringify(sizeProfile)}`
-    : "";
+  const sizeContext =
+    sizeProfile && Object.keys(sizeProfile).length > 0
+      ? `\nUser's size profile: ${JSON.stringify(sizeProfile)}`
+      : "";
 
   const response = await client.messages.create({
     model: MODEL,
@@ -113,7 +139,7 @@ Return ONLY valid JSON, no explanation text.`,
   return JSON.parse(text.replace(/```json|```/g, "").trim());
 }
 
-// ── Detect Search Intent (lightweight check) ──
+// ── Intent Detection ──
 
 export function hasSearchIntent(text: string): boolean {
   return text.includes("[SEARCH_INTENT]");
@@ -123,7 +149,6 @@ export function hasTrackingIntent(text: string): boolean {
   return text.includes("[TRACKING_INTENT]");
 }
 
-/** Strip intent markers from the response text */
 export function stripIntentMarkers(text: string): string {
   return text
     .replace(/\[SEARCH_INTENT\]\n?/g, "")
