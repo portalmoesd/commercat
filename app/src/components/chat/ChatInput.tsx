@@ -3,7 +3,7 @@
 import { useState, useRef, type KeyboardEvent, type ChangeEvent } from "react";
 
 interface ChatInputProps {
-  onSend: (message: string, imageBase64?: string) => void;
+  onSend: (message: string, imageBase64?: string, imagePreview?: string) => void;
   disabled: boolean;
 }
 
@@ -24,7 +24,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     const trimmed = text.trim();
     if (!trimmed && !imageBase64) return;
 
-    onSend(trimmed || "Find products similar to this image", imageBase64 ?? undefined);
+    onSend(trimmed || "Find products similar to this image", imageBase64 ?? undefined, imagePreview ?? undefined);
     setText("");
     setImagePreview(null);
     setImageBase64(null);

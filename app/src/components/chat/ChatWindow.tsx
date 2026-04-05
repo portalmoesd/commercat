@@ -10,6 +10,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imagePreview?: string; // data URL for uploaded image
   products?: ProcessedProduct[];
   trackingInfo?: OrderTracking;
   isSearchLimit?: boolean;
@@ -71,6 +72,13 @@ export function ChatWindow({
                   : "bg-white border border-gray-light rounded-[12px_12px_12px_0]"
               }`}
             >
+              {msg.imagePreview && (
+                <img
+                  src={msg.imagePreview}
+                  alt="Uploaded"
+                  className="w-32 h-32 object-cover rounded-lg mb-2"
+                />
+              )}
               {msg.content
                 .replace(/\[SEARCH_INTENT\]\n?/g, "")
                 .replace(/\[TRACKING_INTENT\]\n?/g, "")

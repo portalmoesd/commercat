@@ -125,11 +125,12 @@ export default function ChatPage() {
   );
 
   const handleSend = useCallback(
-    async (message: string, imageBase64?: string) => {
+    async (message: string, imageBase64?: string, imagePreview?: string) => {
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
         content: message,
+        imagePreview,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, userMessage]);
