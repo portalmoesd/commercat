@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
-import { uploadImage } from "@/lib/storage";
 import {
   streamChatGenerator,
   translateQuery,
@@ -13,6 +12,7 @@ import { checkAndIncrementSearchCount } from "@/lib/search-limit";
 import { getFxRates } from "@/lib/currency";
 import { calculatePrice } from "@/lib/pricing";
 import type {
+  NormalisedProduct,
   SubscriptionTier,
   Platform,
   ProcessedProduct,
@@ -212,27 +212,43 @@ export async function POST(req: NextRequest) {
               let chineseTerms: string[] = [];
 
               if (isImageSearch) {
-                // For image search: Claude already described the image above.
-                // Extract brand/product details from Claude's description for
-                // a more accurate keyword search (better than OTAPI image search)
                 controller.enqueue(
                   encoder.encode(
                     `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
                   )
                 );
 
-                // Use Claude's description to generate precise search terms
+                // Use Claude's description to generate search terms
                 chineseTerms = await translateQuery(
                   fullResponse || message || "similar product",
                   sizeProfile
                 );
 
-                const searchResults = await Promise.all(
-                  chineseTerms.map((term) =>
-                    searchByKeyword(term, "1688" as Platform)
-                  )
+                // Upload image to Supabase for a public URL
+                let imageUrl: string | null = null;
+                try {
+                  const { uploadImage } = await import("@/lib/storage");
+                  imageUrl = await uploadImage(image_base64!, authUser.id);
+                } catch {
+                  // Image upload failed — continue with text search only
+                }
+
+                // Search both platforms with keywords + try image search on Taobao
+                const searchPromises = chineseTerms.map((term) =>
+                  searchByKeyword(term, "1688" as Platform)
                 );
-                allProducts = searchResults.flat();
+
+                // If we have a public image URL, also do Taobao image search
+                if (imageUrl) {
+                  searchPromises.push(
+                    searchByImage(imageUrl, "taobao" as Platform, chineseTerms[0])
+                  );
+                }
+
+                const searchResults = await Promise.allSettled(searchPromises);
+                allProducts = searchResults
+                  .filter((r) => r.status === "fulfilled")
+                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
               } else {
                 chineseTerms = await translateQuery(message, sizeProfile);
 
