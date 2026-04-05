@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
 import {
-  streamChat,
+  streamChatGenerator,
   translateQuery,
   filterResults,
   SYSTEM_PROMPT,
@@ -126,46 +126,24 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Stream initial Claude response
-          const claudeStream = await streamChat(
-            anthropicMessages,
-            SYSTEM_PROMPT
-          );
-          const reader = claudeStream.getReader();
+          // Stream Claude response using async generator
           let fullResponse = "";
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = new TextDecoder().decode(value);
+          for await (const text of streamChatGenerator(
+            anthropicMessages,
+            SYSTEM_PROMPT
+          )) {
+            fullResponse += text;
 
-            const lines = chunk.split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (
-                    data.type === "content_block_delta" &&
-                    data.delta?.type === "text_delta"
-                  ) {
-                    const text = data.delta.text;
-                    fullResponse += text;
-
-                    const cleanText = text
-                      .replace(/\[SEARCH_INTENT\]\n?/g, "")
-                      .replace(/\[TRACKING_INTENT\]\n?/g, "");
-                    if (cleanText) {
-                      controller.enqueue(
-                        encoder.encode(
-                          `data: ${JSON.stringify({ type: "text", content: cleanText })}\n\n`
-                        )
-                      );
-                    }
-                  }
-                } catch {
-                  // Skip non-JSON lines
-                }
-              }
+            const cleanText = text
+              .replace(/\[SEARCH_INTENT\]\n?/g, "")
+              .replace(/\[TRACKING_INTENT\]\n?/g, "");
+            if (cleanText) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: "text", content: cleanText })}\n\n`
+                )
+              );
             }
           }
 
