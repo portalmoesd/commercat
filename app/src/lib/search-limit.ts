@@ -25,24 +25,11 @@ function getSecondsUntilMidnightUTC4(): number {
 }
 
 export async function checkAndIncrementSearchCount(
-  userId: string,
-  tier: SubscriptionTier
+  _userId: string,
+  _tier: SubscriptionTier
 ): Promise<SearchLimitStatus> {
-  const limit = TIER_LIMITS[tier] ?? 15;
-  const dateKey = getTbilisiDateKey();
-  const redisKey = `search_count:${userId}:${dateKey}`;
-
-  const current = await redis.get<number>(redisKey);
-  const count = current ?? 0;
-
-  if (count >= limit) {
-    return { allowed: false, count, limit, show_upgrade_prompt: true };
-  }
-
-  const ttl = getSecondsUntilMidnightUTC4();
-  await redis.set(redisKey, count + 1, { ex: ttl });
-
-  return { allowed: true, count: count + 1, limit, show_upgrade_prompt: false };
+  // Temporarily unlimited for testing
+  return { allowed: true, count: 0, limit: 999999, show_upgrade_prompt: false };
 }
 
 export async function getSearchCount(
