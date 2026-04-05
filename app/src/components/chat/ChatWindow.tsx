@@ -71,7 +71,10 @@ export function ChatWindow({
                   : "bg-white border border-gray-light rounded-[12px_12px_12px_0]"
               }`}
             >
-              {msg.content}
+              {msg.content
+                .replace(/\[SEARCH_INTENT\]\n?/g, "")
+                .replace(/\[TRACKING_INTENT\]\n?/g, "")
+                .trim()}
             </div>
           </div>
 
@@ -105,7 +108,10 @@ export function ChatWindow({
       {isStreaming && streamingContent && (
         <div className="flex justify-start animate-[fadeSlideUp_150ms_ease-out]">
           <div className="max-w-[85%] md:max-w-[70%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap bg-white border border-gray-light rounded-[12px_12px_12px_0]">
-            {streamingContent}
+            {streamingContent
+              .replace(/\[SEARCH_INTENT\]\n?/g, "")
+              .replace(/\[TRACKING_INTENT\]\n?/g, "")
+              .trim()}
           </div>
         </div>
       )}

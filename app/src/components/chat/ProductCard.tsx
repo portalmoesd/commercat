@@ -51,6 +51,8 @@ export function ProductCard({ product, onAddToBasket }: ProductCardProps) {
             alt={product.title_en}
             className="w-full h-full object-cover"
             loading="lazy"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
           />
         )}
 
