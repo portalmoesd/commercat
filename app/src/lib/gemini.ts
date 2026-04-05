@@ -1,7 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-const MODEL = "claude-sonnet-4-20250514";
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // ── System Prompt ──
 
@@ -30,44 +29,43 @@ When a user asks about their order status (e.g. "where is my order", "track my o
 [TRACKING_INTENT]
 Then provide a natural response about checking their order.`;
 
-// ── Non-streaming Chat (returns full text) ──
-
-export async function chatCompletion(
-  messages: Anthropic.MessageParam[],
-  systemPrompt: string = SYSTEM_PROMPT
-): Promise<string> {
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages,
-  });
-
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "";
-  return text;
-}
+const flash = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash-preview-05-20",
+  systemInstruction: SYSTEM_PROMPT,
+});
 
 // ── Streaming Chat (yields text chunks) ──
 
 export async function* streamChatGenerator(
-  messages: Anthropic.MessageParam[],
-  systemPrompt: string = SYSTEM_PROMPT
+  history: { role: "user" | "model"; parts: { text: string }[] }[],
+  userMessage: string,
+  imageBase64?: string,
+  imageMediaType?: string
 ): AsyncGenerator<string> {
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages,
-  });
+  const chat = flash.startChat({ history });
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      yield event.delta.text;
-    }
+  // Build message parts
+  const parts: (
+    | { text: string }
+    | { inlineData: { mimeType: string; data: string } }
+  )[] = [];
+
+  if (imageBase64) {
+    parts.push({
+      inlineData: {
+        mimeType: imageMediaType || "image/jpeg",
+        data: imageBase64,
+      },
+    });
+  }
+
+  parts.push({ text: userMessage || "What is this? Find similar products." });
+
+  const result = await chat.sendMessageStream(parts);
+
+  for await (const chunk of result.stream) {
+    const text = chunk.text();
+    if (text) yield text;
   }
 }
 
@@ -82,19 +80,10 @@ export async function translateQuery(
       ? `\nUser's size profile: ${JSON.stringify(sizeProfile)}`
       : "";
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 200,
-    messages: [
-      {
-        role: "user",
-        content: `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on 1688 and Taobao. Keep brand names in English/original form (e.g. "SMEG", "Nike") since Chinese sellers use them. Mix brand name + Chinese product category. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`,
-      },
-    ],
-  });
-
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
+  const result = await flash.generateContent(
+    `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on 1688 and Taobao. Keep brand names in English/original form (e.g. "SMEG", "Nike") since Chinese sellers use them. Mix brand name + Chinese product category. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`
+  );
+  const text = result.response.text();
   return JSON.parse(text.replace(/```json|```/g, "").trim());
 }
 
@@ -104,13 +93,8 @@ export async function filterResults(
   query: string,
   rawResults: object[]
 ): Promise<FilteredProduct[]> {
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2000,
-    messages: [
-      {
-        role: "user",
-        content: `Original query: "${query}"
+  const result = await flash.generateContent(
+    `Original query: "${query}"
 
 Raw results:
 ${JSON.stringify(rawResults)}
@@ -129,13 +113,9 @@ Return the top 5 most relevant products as a valid JSON array. For each product 
 
 Remove products that are clearly irrelevant to the query.
 Sort by relevance_score descending.
-Return ONLY valid JSON, no explanation text.`,
-      },
-    ],
-  });
-
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
+Return ONLY valid JSON, no explanation text.`
+  );
+  const text = result.response.text();
   return JSON.parse(text.replace(/```json|```/g, "").trim());
 }
 
