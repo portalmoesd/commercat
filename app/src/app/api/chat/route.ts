@@ -298,6 +298,11 @@ export async function POST(req: NextRequest) {
                     fxRate,
                     currency
                   );
+                  // Find original normalised product to get shop_name/sales_count
+                  const original = allProducts.find(
+                    (op) => op.id === p.id
+                  );
+
                   return {
                     id: p.id,
                     platform: p.platform as Platform,
@@ -306,6 +311,8 @@ export async function POST(req: NextRequest) {
                     image_url: p.image_url,
                     product_url: p.product_url,
                     price_cny: p.price_cny,
+                    shop_name: original?.shop_name ?? "",
+                    sales_count: original?.sales_count ?? 0,
                     item_cost_local: priceBreakdown.item_cost,
                     commission_local: priceBreakdown.commission,
                     total_local: priceBreakdown.total,

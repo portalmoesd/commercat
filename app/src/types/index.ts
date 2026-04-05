@@ -95,7 +95,7 @@ export interface ProductSku {
   price?: number;
 }
 
-/** Product after Claude filtering + pricing engine */
+/** Product after Claude/Gemini filtering + pricing engine */
 export interface ProcessedProduct {
   id: string;
   platform: Platform;
@@ -104,6 +104,8 @@ export interface ProcessedProduct {
   image_url: string;
   product_url: string;
   price_cny: number;
+  shop_name: string;
+  sales_count: number;
   item_cost_local: number;
   commission_local: number;
   total_local: number;
@@ -111,6 +113,21 @@ export interface ProcessedProduct {
   skus: ProductSku[];
   branded: boolean;
   relevance_score: number;
+}
+
+/** Full product detail (fetched on expand) */
+export interface ProductDetailData {
+  id: string;
+  platform: Platform;
+  title_cn: string;
+  title_en?: string;
+  pictures: string[];
+  description: string;
+  price_cny: number;
+  shop_name: string;
+  sales_count: number;
+  product_url: string;
+  skus: ProductSku[];
 }
 
 // ── Chat ──
