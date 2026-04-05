@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getFxRates } from "@/lib/currency";
 import { calculatePriceGel } from "@/lib/pricing";
 import { createPayment } from "@/lib/bogpay";

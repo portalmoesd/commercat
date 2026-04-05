@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, createSupabaseServerClient } from "@/lib/supabase";
+import { createAdminClient, createSupabaseServerClient } from "@/lib/supabase-server";
 
 const STATUS_MESSAGES: Record<string, string> = {
   purchased:
