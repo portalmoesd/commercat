@@ -88,7 +88,7 @@ export async function translateQuery(
     messages: [
       {
         role: "user",
-        content: `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on Taobao and 1688. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`,
+        content: `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on 1688 and Taobao. Keep brand names in English/original form (e.g. "SMEG", "Nike") since Chinese sellers use them. Mix brand name + Chinese product category. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`,
       },
     ],
   });
