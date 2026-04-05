@@ -3,8 +3,10 @@
 import { useState, useCallback } from "react";
 import { ChatWindow, type ChatMessage } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { BasketPanel, type BasketItem } from "@/components/basket/BasketPanel";
 import { useCurrency } from "@/lib/currency-context";
 import type { ProcessedProduct } from "@/types";
+import Link from "next/link";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -13,9 +15,91 @@ export default function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const { currencyCode } = useCurrency();
 
+  // Basket state
+  const [basketItems, setBasketItems] = useState<BasketItem[]>([]);
+  const [basketOpen, setBasketOpen] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const handleAddToBasket = useCallback(
+    (product: ProcessedProduct, variant: Record<string, string>) => {
+      setBasketItems((prev) => [
+        ...prev,
+        { product, variant, quantity: 1, addedAt: Date.now() },
+      ]);
+      setBasketOpen(true);
+    },
+    []
+  );
+
+  const handleRemoveItem = useCallback((index: number) => {
+    setBasketItems((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleUpdateQuantity = useCallback(
+    (index: number, quantity: number) => {
+      setBasketItems((prev) =>
+        prev.map((item, i) => (i === index ? { ...item, quantity } : item))
+      );
+    },
+    []
+  );
+
+  const handleCheckout = useCallback(
+    async (forwarderAddress: string) => {
+      setIsCheckingOut(true);
+      try {
+        const response = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: basketItems.map((item) => ({
+              product_id: item.product.id,
+              platform: item.product.platform,
+              title_en: item.product.title_en,
+              title_cn: item.product.title_cn,
+              image_url: item.product.image_url,
+              product_url: item.product.product_url,
+              price_cny: item.product.price_cny,
+              quantity: item.quantity,
+              variant: item.variant,
+            })),
+            forwarder_address: forwarderAddress,
+            display_currency: currencyCode,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Checkout failed");
+        }
+
+        const data = await response.json();
+
+        // Redirect to BOG Pay
+        if (data.payment_url) {
+          window.location.href = data.payment_url;
+        }
+      } catch (error) {
+        console.error("Checkout error:", error);
+        // Add error message to chat
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content:
+              "Sorry, checkout failed. Please try again.",
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setIsCheckingOut(false);
+      }
+    },
+    [basketItems, currencyCode]
+  );
+
   const handleSend = useCallback(
     async (message: string, imageBase64?: string) => {
-      // Add user message immediately
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
@@ -86,7 +170,6 @@ export default function ChatPage() {
                   break;
 
                 case "status":
-                  // Could show a status indicator, for now just continue
                   break;
 
                 case "done":
@@ -106,7 +189,6 @@ export default function ChatPage() {
           }
         }
 
-        // Add final assistant message
         const assistantMessage: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",
@@ -144,12 +226,30 @@ export default function ChatPage() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="text-xs text-gray-dark hover:text-charcoal transition-colors">
+          {/* Basket button */}
+          <button
+            onClick={() => setBasketOpen(true)}
+            className="relative text-xs text-gray-dark hover:text-charcoal transition-colors"
+          >
+            Basket
+            {basketItems.length > 0 && (
+              <span className="absolute -top-1.5 -right-3 w-4 h-4 bg-accent text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                {basketItems.length}
+              </span>
+            )}
+          </button>
+          <Link
+            href="/orders"
+            className="text-xs text-gray-dark hover:text-charcoal transition-colors"
+          >
             Orders
-          </button>
-          <button className="text-xs text-gray-dark hover:text-charcoal transition-colors">
+          </Link>
+          <Link
+            href="/settings"
+            className="text-xs text-gray-dark hover:text-charcoal transition-colors"
+          >
             Settings
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -158,10 +258,23 @@ export default function ChatPage() {
         messages={messages}
         streamingContent={streamingContent}
         isStreaming={isStreaming}
+        onAddToBasket={handleAddToBasket}
       />
 
       {/* Input */}
       <ChatInput onSend={handleSend} disabled={isStreaming} />
+
+      {/* Basket panel */}
+      <BasketPanel
+        items={basketItems}
+        isOpen={basketOpen}
+        onClose={() => setBasketOpen(false)}
+        onRemoveItem={handleRemoveItem}
+        onUpdateQuantity={handleUpdateQuantity}
+        onCheckout={handleCheckout}
+        walletBalanceGel={0}
+        isCheckingOut={isCheckingOut}
+      />
     </div>
   );
 }

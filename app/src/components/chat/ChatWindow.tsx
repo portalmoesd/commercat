@@ -25,12 +25,14 @@ interface ChatWindowProps {
   messages: ChatMessage[];
   streamingContent: string;
   isStreaming: boolean;
+  onAddToBasket?: (product: ProcessedProduct, variant: Record<string, string>) => void;
 }
 
 export function ChatWindow({
   messages,
   streamingContent,
   isStreaming,
+  onAddToBasket,
 }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +78,7 @@ export function ChatWindow({
           {/* Product cards */}
           {msg.products && msg.products.length > 0 && (
             <div className="mt-3">
-              <ProductCardRow products={msg.products} />
+              <ProductCardRow products={msg.products} onAddToBasket={onAddToBasket} />
             </div>
           )}
 
