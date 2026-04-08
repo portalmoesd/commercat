@@ -196,18 +196,15 @@ export async function POST(req: NextRequest) {
                 const imageUrl = await uploadImage(image_base64!, authUser.id);
                 const lensMatches = await lensSearch(imageUrl);
                 brandPrice = findBrandPrice(lensMatches);
-              } catch {
-                // Lens failed — continue without brand price
+              } catch (err) {
+                console.error("Lens failed:", err);
               }
 
               // Run Elimapi visual image search
               const products = await searchByImage(
                 image_base64!,
                 "taobao" as Platform
-              ).catch((err) => {
-                console.error("Image search failed:", err);
-                return [] as NormalisedProduct[];
-              });
+              );
 
               return { products, brandPrice };
             })();
@@ -294,6 +291,12 @@ export async function POST(req: NextRequest) {
               // Apply pricing directly — no Gemini filtering needed
               const rates = await getFxRates();
               const fxRate = rates[currency] ?? rates["USD"];
+
+              console.log(`Search results: ${allProducts.length} products, fxRate=${fxRate}, currency=${currency}`);
+              if (allProducts.length > 0) {
+                console.log("First product:", JSON.stringify(allProducts[0]).slice(0, 200));
+              }
+
               const processedProducts = applyPricing(allProducts, fxRate, currency);
 
               controller.enqueue(
