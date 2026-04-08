@@ -274,12 +274,15 @@ export async function POST(req: NextRequest) {
                   )
                 );
 
-                const searchResults = await Promise.all(
-                  chineseTerms.map((term) =>
-                    searchByKeyword(term, "taobao" as Platform)
-                  )
-                );
-                allProducts = searchResults.flat();
+                // Search both Taobao AND 1688 in parallel
+                const searchPromises = chineseTerms.flatMap((term) => [
+                  searchByKeyword(term, "taobao" as Platform),
+                  searchByKeyword(term, "1688" as Platform),
+                ]);
+                const searchResults = await Promise.allSettled(searchPromises);
+                allProducts = searchResults
+                  .filter((r) => r.status === "fulfilled")
+                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
               }
 
               // Filter with Gemini
