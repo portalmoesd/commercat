@@ -6,8 +6,41 @@ const ELIMAPI_BASE = "https://openapi.elim.asia/v1";
 const CACHE_TTL = 6 * 60 * 60; // 6 hours
 const MAX_RETRIES = 2;
 
-function getAuthHeader(): string {
-  return `Bearer ${process.env.ELIMAPI_JWT!}`;
+// ── Auth: auto-login to get fresh JWT ──
+
+let cachedJwt: string | null = null;
+let jwtExpiresAt = 0;
+
+async function getAuthHeader(): Promise<string> {
+  // Use env JWT if set and no auto-login credentials
+  if (!process.env.ELIMAPI_EMAIL && process.env.ELIMAPI_JWT) {
+    return `Bearer ${process.env.ELIMAPI_JWT}`;
+  }
+
+  // Return cached JWT if still valid (with 5 min buffer)
+  if (cachedJwt && Date.now() / 1000 < jwtExpiresAt - 300) {
+    return `Bearer ${cachedJwt}`;
+  }
+
+  // Login to get fresh JWT
+  const response = await fetch(`${ELIMAPI_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: process.env.ELIMAPI_EMAIL!,
+      password: process.env.ELIMAPI_PASSWORD!,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Elimapi login failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  cachedJwt = data.access_token;
+  jwtExpiresAt = data.expires_in;
+
+  return `Bearer ${cachedJwt}`;
 }
 
 /** Map our platform names to Elimapi's */
@@ -22,15 +55,33 @@ async function fetchWithRetry(
   body: object,
   retries = MAX_RETRIES
 ): Promise<Response> {
+  const authHeader = await getAuthHeader();
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: getAuthHeader(),
+        Authorization: authHeader,
       },
       body: JSON.stringify(body),
     });
+
+    // If 401, clear cached JWT and retry with fresh login
+    if (response.status === 401 && attempt < retries) {
+      cachedJwt = null;
+      jwtExpiresAt = 0;
+      const freshAuth = await getAuthHeader();
+      const retryResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: freshAuth,
+        },
+        body: JSON.stringify(body),
+      });
+      if (retryResponse.ok) return retryResponse;
+    }
 
     if (response.ok) return response;
 
@@ -195,10 +246,11 @@ async function uploadImageToElim(
   formData.append("file", blob, filename);
   formData.append("platform", toElimPlatform(platform));
 
+  const authHeader = await getAuthHeader();
   const response = await fetch(`${ELIMAPI_BASE}/products/upload-image`, {
     method: "POST",
     headers: {
-      Authorization: getAuthHeader(),
+      Authorization: authHeader,
     },
     body: formData,
   });
