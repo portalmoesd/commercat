@@ -244,16 +244,15 @@ export async function POST(req: NextRequest) {
                 }
 
                 const searchPromises = chineseTerms.slice(0, 4).map((term) =>
-                  searchByKeyword(term, "1688" as Platform)
+                  searchByKeyword(term, "taobao" as Platform)
                 );
 
-                // Also try Taobao image search if we have a URL
+                // Also try Elimapi image search if we have a URL
                 if (lensResult.imageUrl) {
                   searchPromises.push(
                     searchByImage(
                       lensResult.imageUrl,
-                      "taobao" as Platform,
-                      chineseTerms[0]
+                      "taobao" as Platform
                     )
                   );
                 }
