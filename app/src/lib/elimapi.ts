@@ -90,12 +90,15 @@ export async function searchByKeyword(
 }
 
 export async function searchByImage(
-  imageUrl: string,
+  imageSource: string,
   platform: Platform = "taobao",
-  _keyword?: string
 ): Promise<NormalisedProduct[]> {
+  // Step 1: Upload image to get an Elimapi image_id
+  const imageId = await uploadImageToElim(imageSource, platform);
+
+  // Step 2: Search with the image_id
   const response = await fetchWithRetry(`${ELIMAPI_BASE}/products/search-img`, {
-    img_url: imageUrl,
+    img_id: imageId,
     platform: toElimPlatform(platform),
     page: 1,
     size: 20,
@@ -157,20 +160,39 @@ export async function getProductDetailFull(
   };
 }
 
-// ── Upload image (for non-Alibaba images) ──
+// ── Upload image to Elimapi ──
 
-export async function uploadImageForSearch(
-  imageUrl: string,
+/**
+ * Upload an image to Elimapi and return the image_id for visual search.
+ * Accepts either a URL (will be fetched) or raw base64 data.
+ */
+async function uploadImageToElim(
+  imageSource: string,
   platform: Platform = "taobao"
 ): Promise<string> {
-  // Elimapi requires Alibaba-hosted images for search-img
-  // Use the upload-image endpoint to get an Alibaba-hosted URL
   const formData = new FormData();
 
-  // Fetch the image and convert to blob
-  const imageResponse = await fetch(imageUrl);
-  const blob = await imageResponse.blob();
-  formData.append("file", blob, "search-image.jpg");
+  let blob: Blob;
+  let filename = "search-image.jpg";
+
+  if (imageSource.startsWith("data:")) {
+    // Base64 data URL
+    const base64Data = imageSource.split(",")[1];
+    const mimeMatch = imageSource.match(/data:([^;]+);/);
+    const mimeType = mimeMatch?.[1] ?? "image/jpeg";
+    const ext = mimeType.split("/")[1] ?? "jpg";
+    filename = `search-image.${ext}`;
+    blob = new Blob([Buffer.from(base64Data, "base64")], { type: mimeType });
+  } else if (imageSource.length > 200 && !imageSource.startsWith("http")) {
+    // Raw base64 string (no data: prefix)
+    blob = new Blob([Buffer.from(imageSource, "base64")], { type: "image/jpeg" });
+  } else {
+    // URL — fetch and convert to blob
+    const imageResponse = await fetch(imageSource);
+    blob = await imageResponse.blob();
+  }
+
+  formData.append("file", blob, filename);
   formData.append("platform", toElimPlatform(platform));
 
   const response = await fetch(`${ELIMAPI_BASE}/products/upload-image`, {
@@ -181,8 +203,19 @@ export async function uploadImageForSearch(
     body: formData,
   });
 
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Elimapi image upload failed: ${response.status} ${text.slice(0, 200)}`);
+  }
+
   const data = await response.json();
-  return data.img_url ?? data.url ?? imageUrl;
+  const imageId = data.data?.image_id ?? data.image_id;
+
+  if (!imageId) {
+    throw new Error("Elimapi image upload: no image_id in response");
+  }
+
+  return String(imageId);
 }
 
 // ── Normalisation ──
