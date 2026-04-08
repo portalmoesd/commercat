@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const platform = (req.nextUrl.searchParams.get("platform") ?? "1688") as Platform;
+    const platform = (req.nextUrl.searchParams.get("platform") ?? "taobao") as Platform;
 
     const { product, pictures, description } = await getProductDetailFull(
       id,

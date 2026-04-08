@@ -231,40 +231,45 @@ export async function POST(req: NextRequest) {
                   )
                 );
 
-                // Use Lens search terms if available, fallback to Gemini description
+                // Run Elimapi visual image search (upload base64 → get image_id → search)
+                // This gives same results as searching directly on Taobao/1688
+                const imageSearchPromise = searchByImage(
+                  image_base64!,
+                  "taobao" as Platform
+                ).catch((err) => {
+                  console.error("Elimapi image search failed:", err);
+                  return [] as NormalisedProduct[];
+                });
+
+                // Also do keyword search as backup using Lens/Gemini terms
                 const termsToTranslate =
                   lensResult.searchTerms.length > 0
                     ? lensResult.searchTerms
                     : [fullResponse || message || "similar product"];
 
-                // Translate and search
                 for (const term of termsToTranslate.slice(0, 2)) {
                   const cnTerms = await translateQuery(term, sizeProfile);
                   chineseTerms.push(...cnTerms);
                 }
 
-                const searchPromises = chineseTerms.slice(0, 4).map((term) =>
-                  searchByKeyword(term, "1688" as Platform)
+                const keywordSearchPromises = chineseTerms.slice(0, 3).map((term) =>
+                  searchByKeyword(term, "taobao" as Platform)
                 );
 
-                // Also try Taobao image search if we have a URL
-                if (lensResult.imageUrl) {
-                  searchPromises.push(
-                    searchByImage(
-                      lensResult.imageUrl,
-                      "taobao" as Platform,
-                      chineseTerms[0]
-                    )
-                  );
-                }
+                // Wait for both image search and keyword searches
+                const [imageResults, ...keywordResults] = await Promise.allSettled([
+                  imageSearchPromise,
+                  ...keywordSearchPromises,
+                ]);
 
-                const searchResults = await Promise.allSettled(searchPromises);
-                allProducts = searchResults
+                // Prioritize image search results (visual match), then keyword results
+                const imageProducts = imageResults.status === "fulfilled" ? imageResults.value : [];
+                const keywordProducts = keywordResults
                   .filter((r) => r.status === "fulfilled")
-                  .flatMap(
-                    (r) =>
-                      (r as PromiseFulfilledResult<NormalisedProduct[]>).value
-                  );
+                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
+
+                // Image results first (better visual match), then keyword results
+                allProducts = [...imageProducts, ...keywordProducts];
               } else {
                 // Text search
                 chineseTerms = await translateQuery(message, sizeProfile);
@@ -275,12 +280,15 @@ export async function POST(req: NextRequest) {
                   )
                 );
 
-                const searchResults = await Promise.all(
-                  chineseTerms.map((term) =>
-                    searchByKeyword(term, "taobao" as Platform)
-                  )
-                );
-                allProducts = searchResults.flat();
+                // Search both Taobao AND 1688 in parallel
+                const searchPromises = chineseTerms.flatMap((term) => [
+                  searchByKeyword(term, "taobao" as Platform),
+                  searchByKeyword(term, "1688" as Platform),
+                ]);
+                const searchResults = await Promise.allSettled(searchPromises);
+                allProducts = searchResults
+                  .filter((r) => r.status === "fulfilled")
+                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
               }
 
               // Filter with Gemini

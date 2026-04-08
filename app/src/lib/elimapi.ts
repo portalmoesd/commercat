@@ -1,273 +1,263 @@
 import { createHash } from "crypto";
-import type { NormalisedProduct, Platform } from "@/types";
+import type { NormalisedProduct, Platform, ProductDetailData } from "@/types";
 import { redis } from "./redis";
 
-// ── API Hosts ──
-const OTAPI_1688_HOST = "otapi-1688.p.rapidapi.com";
-const TAOBAO_OPEN_HOST = "toabao-open-api.p.rapidapi.com"; // note: "toabao" is their typo
-
+const ELIMAPI_BASE = "https://openapi.elim.asia/v1";
 const CACHE_TTL = 6 * 60 * 60; // 6 hours
 const MAX_RETRIES = 2;
 
-function getHeaders(host: string): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    "x-rapidapi-host": host,
-    "x-rapidapi-key": process.env.RAPIDAPI_KEY || "",
-  };
+function getAuthHeader(): string {
+  return `Bearer ${process.env.ELIMAPI_JWT!}`;
 }
 
-/** Fetch with retry for transient errors */
+/** Map our platform names to Elimapi's */
+function toElimPlatform(platform: Platform): "taobao" | "alibaba" {
+  if (platform === "1688") return "alibaba";
+  return "taobao"; // taobao, tmall, pinduoduo all use "taobao"
+}
+
+/** Fetch with retry */
 async function fetchWithRetry(
   url: string,
-  host: string,
+  body: object,
   retries = MAX_RETRIES
 ): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const response = await fetch(url, { headers: getHeaders(host) });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: getAuthHeader(),
+      },
+      body: JSON.stringify(body),
+    });
 
     if (response.ok) return response;
 
-    // 429 = rate limited, treat as retryable
-    if (response.status !== 429 && response.status < 500) {
-      const body = await response.text().catch(() => "");
-      throw new Error(`API ${response.status}: ${body.slice(0, 300)}`);
+    if (response.status === 429 && attempt < retries) {
+      await new Promise((r) => setTimeout(r, (attempt + 1) * 2000));
+      continue;
     }
 
-    const body = await response.text().catch(() => "");
-    console.error(
-      `API ${response.status} (attempt ${attempt + 1}/${retries + 1}): ${body.slice(0, 300)}`
-    );
+    if (response.status < 500) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Elimapi ${response.status}: ${text.slice(0, 300)}`);
+    }
+
+    const text = await response.text().catch(() => "");
+    console.error(`Elimapi ${response.status} (attempt ${attempt + 1}): ${text.slice(0, 300)}`);
 
     if (attempt < retries) {
-      // Longer wait for rate limits
-      const delay = response.status === 429 ? (attempt + 1) * 2000 : (attempt + 1) * 1000;
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
     } else {
-      throw new Error(
-        `API failed after ${retries + 1} attempts: ${response.status} — ${body.slice(0, 200)}`
-      );
+      throw new Error(`Elimapi failed after ${retries + 1} attempts: ${response.status}`);
     }
   }
-  throw new Error("API: unexpected retry exit");
-}
-
-/** Parse OTAPI response format (shared by both APIs) */
-function parseOtapiItems(data: Record<string, unknown>): unknown[] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = data as any;
-  return d.Result?.Items?.Items?.Content ?? d.OtapiItemInfoList ?? [];
+  throw new Error("Elimapi: unexpected retry exit");
 }
 
 // ── Search ──
 
-/** Search 1688 by keyword */
-async function search1688(keyword: string, limit = 20): Promise<NormalisedProduct[]> {
-  const params = new URLSearchParams({
-    language: "en",
-    framePosition: "0",
-    frameSize: String(Math.min(limit, 50)),
-    ItemTitle: keyword,
-    OrderBy: "Popularity:Desc",
-  });
-
-  const url = `https://${OTAPI_1688_HOST}/BatchSearchItemsFrame?${params}`;
-  const response = await fetchWithRetry(url, OTAPI_1688_HOST);
-  const data = await response.json();
-  return parseOtapiItems(data).map((item) => normalise(item, "1688"));
-}
-
-/** Search Taobao/Tmall by keyword */
-async function searchTaobao(keyword: string, limit = 20): Promise<NormalisedProduct[]> {
-  const params = new URLSearchParams({
-    language: "en",
-    framePosition: "0",
-    frameSize: String(Math.min(limit, 50)),
-    ItemTitle: keyword,
-    OrderBy: "Popularity:Desc",
-  });
-
-  const url = `https://${TAOBAO_OPEN_HOST}/BatchSearchItemsFrame?${params}`;
-  const response = await fetchWithRetry(url, TAOBAO_OPEN_HOST);
-  const data = await response.json();
-  return parseOtapiItems(data).map((item) => normalise(item, "taobao"));
-}
-
-/**
- * Search across both 1688 AND Taobao/Tmall, return combined results.
- * Each search runs in parallel for speed.
- */
 export async function searchByKeyword(
   keyword: string,
-  _platform: Platform = "1688",
+  platform: Platform = "taobao",
   _page = 1,
   limit = 20
 ): Promise<NormalisedProduct[]> {
-  // Check cache
-  const cached = await getCachedResults(keyword, "all");
+  const cached = await getCachedResults(keyword, platform);
   if (cached) return cached;
 
-  // Search both platforms in parallel
-  const [results1688, resultsTaobao] = await Promise.allSettled([
-    search1688(keyword, limit),
-    searchTaobao(keyword, limit),
-  ]);
-
-  const products: NormalisedProduct[] = [];
-
-  if (results1688.status === "fulfilled") {
-    products.push(...results1688.value);
-  } else {
-    console.error("1688 search failed:", results1688.reason);
-  }
-
-  if (resultsTaobao.status === "fulfilled") {
-    products.push(...resultsTaobao.value);
-  } else {
-    console.error("Taobao search failed:", resultsTaobao.reason);
-  }
-
-  if (products.length > 0) {
-    await setCachedResults(keyword, "all", products);
-  }
-
-  return products;
-}
-
-/**
- * Image search: use Taobao Open API with keyword + image URL.
- * The Taobao API requires ItemTitle alongside ImageUrl, so we
- * need a text description too (provided by Claude's image analysis).
- */
-export async function searchByImage(
-  imageUrl: string,
-  _platform: Platform = "taobao",
-  keyword?: string
-): Promise<NormalisedProduct[]> {
-  const params = new URLSearchParams({
-    language: "en",
-    framePosition: "0",
-    frameSize: "20",
-    OrderBy: "Popularity:Desc",
+  const response = await fetchWithRetry(`${ELIMAPI_BASE}/products/search`, {
+    q: keyword,
+    platform: toElimPlatform(platform),
+    page: 1,
+    size: Math.min(limit, 50),
+    lang: "en",
+    sort: "SALE_QTY_DESC",
   });
 
-  // Taobao API requires at least ItemTitle alongside ImageUrl
-  if (keyword) {
-    params.set("ItemTitle", keyword);
-  }
-  params.set("ImageUrl", imageUrl);
-
-  const url = `https://${TAOBAO_OPEN_HOST}/BatchSearchItemsFrame?${params}`;
-  const response = await fetchWithRetry(url, TAOBAO_OPEN_HOST);
   const data = await response.json();
-  return parseOtapiItems(data).map((item) => normalise(item, "taobao"));
+  const items = data.items ?? [];
+  const normalised = items.map((item: ElimSearchItem) =>
+    normaliseSearchItem(item, platform)
+  );
+
+  if (normalised.length > 0) {
+    await setCachedResults(keyword, platform, normalised);
+  }
+
+  return normalised;
+}
+
+export async function searchByImage(
+  imageSource: string,
+  platform: Platform = "taobao",
+): Promise<NormalisedProduct[]> {
+  // Step 1: Upload image to get an Elimapi image_id
+  const imageId = await uploadImageToElim(imageSource, platform);
+
+  // Step 2: Search with the image_id
+  const response = await fetchWithRetry(`${ELIMAPI_BASE}/products/search-img`, {
+    img_id: imageId,
+    platform: toElimPlatform(platform),
+    page: 1,
+    size: 20,
+    lang: "en",
+  });
+
+  const data = await response.json();
+  const items = data.items ?? [];
+  return items.map((item: ElimSearchItem) =>
+    normaliseSearchItem(item, platform)
+  );
 }
 
 export async function getProductDetail(
   itemId: string,
-  platform: Platform = "1688"
+  platform: Platform = "taobao"
 ): Promise<NormalisedProduct> {
-  const host = platform === "taobao" || platform === "tmall"
-    ? TAOBAO_OPEN_HOST
-    : OTAPI_1688_HOST;
-
-  const params = new URLSearchParams({
-    language: "en",
-    itemId,
-  });
-
-  const url = `https://${host}/BatchGetItemFullInfo?${params}`;
-  const response = await fetchWithRetry(url, host);
-  const data = await response.json();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const item = (data as any).OtapiItemInfoList?.[0] ?? (data as any).Result ?? data;
-  return normalise(item, platform);
+  const detail = await getProductDetailFull(itemId, platform);
+  return detail.product;
 }
 
-/** Get full product detail with multiple images and description */
 export async function getProductDetailFull(
   itemId: string,
-  platform: Platform = "1688"
+  platform: Platform = "taobao"
 ): Promise<{
   product: NormalisedProduct;
   pictures: string[];
   description: string;
 }> {
-  const host =
-    platform === "taobao" || platform === "tmall"
-      ? TAOBAO_OPEN_HOST
-      : OTAPI_1688_HOST;
-
-  const params = new URLSearchParams({
-    language: "en",
-    itemId,
+  const response = await fetchWithRetry(`${ELIMAPI_BASE}/products/find`, {
+    id: itemId,
+    platform: toElimPlatform(platform),
+    lang: "en",
   });
 
-  const url = `https://${host}/BatchGetItemFullInfo?${params}`;
-  const response = await fetchWithRetry(url, host);
   const data = await response.json();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = (data as any).OtapiItemInfoList?.[0] ?? (data as any).Result ?? data;
+  const product: NormalisedProduct = {
+    id: String(data.id ?? itemId),
+    title_cn: data.title ?? "",
+    price_cny: parseFloat(data.price ?? data.promotion_price ?? "0"),
+    cn_shipping_cny: 0,
+    image_url: data.img_urls?.[0] ?? "",
+    product_url: `https://item.taobao.com/item.htm?id=${data.id ?? itemId}`,
+    shop_name: data.shop_name ?? "",
+    platform,
+    sales_count: parseInt(data.sold ?? "0", 10),
+    skus: (data.skus ?? []).map((sku: ElimSku) => ({
+      size: sku.spec_name ?? sku.name,
+      color: undefined,
+      price: sku.price ? parseFloat(String(sku.price)) : undefined,
+    })),
+  };
 
-  const product = normalise(raw, platform);
-
-  // Extract multiple pictures
-  const pictures: string[] = [];
-  if (raw.Pictures?.ItemPicture) {
-    for (const pic of raw.Pictures.ItemPicture) {
-      if (pic.Url) pictures.push(pic.Url);
-      if (pic.Large?.Url) pictures.push(pic.Large.Url);
-    }
-  }
-  if (pictures.length === 0 && product.image_url) {
-    pictures.push(product.image_url);
-  }
-
-  // Extract description
-  const description =
-    raw.Description ?? raw.DescriptionHtml ?? raw.ItemDescription ?? "";
-
-  return { product, pictures, description };
+  return {
+    product,
+    pictures: data.img_urls ?? [],
+    description: data.description ?? "",
+  };
 }
 
-// ── Normalisation (handles OTAPI response format from both APIs) ──
+// ── Upload image to Elimapi ──
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function normalise(raw: any, platform: Platform): NormalisedProduct {
-  const rawId = String(raw.Id ?? raw.ExternalItemId ?? raw.item_id ?? raw.id ?? "");
-  const id = rawId.replace(/^abb-/, "");
+/**
+ * Upload an image to Elimapi and return the image_id for visual search.
+ * Accepts either a URL (will be fetched) or raw base64 data.
+ */
+async function uploadImageToElim(
+  imageSource: string,
+  platform: Platform = "taobao"
+): Promise<string> {
+  const formData = new FormData();
 
-  const priceCny = parseFloat(
-    raw.Price?.OriginalPrice ?? raw.Price?.MarginPrice ?? raw.price ?? "0"
-  );
+  let blob: Blob;
+  let filename = "search-image.jpg";
 
-  const imageUrl = raw.MainPictureUrl ?? raw.img ?? raw.image_url ?? "";
+  if (imageSource.startsWith("data:")) {
+    // Base64 data URL
+    const base64Data = imageSource.split(",")[1];
+    const mimeMatch = imageSource.match(/data:([^;]+);/);
+    const mimeType = mimeMatch?.[1] ?? "image/jpeg";
+    const ext = mimeType.split("/")[1] ?? "jpg";
+    filename = `search-image.${ext}`;
+    blob = new Blob([Buffer.from(base64Data, "base64")], { type: mimeType });
+  } else if (imageSource.length > 200 && !imageSource.startsWith("http")) {
+    // Raw base64 string (no data: prefix)
+    blob = new Blob([Buffer.from(imageSource, "base64")], { type: "image/jpeg" });
+  } else {
+    // URL — fetch and convert to blob
+    const imageResponse = await fetch(imageSource);
+    blob = await imageResponse.blob();
+  }
 
-  // Detect platform from ProviderType if available
-  let detectedPlatform = platform;
-  if (raw.ProviderType === "Taobao") detectedPlatform = "taobao";
-  else if (raw.ProviderType === "Tmall") detectedPlatform = "tmall";
-  else if (raw.ProviderType === "Alibaba1688") detectedPlatform = "1688";
+  formData.append("file", blob, filename);
+  formData.append("platform", toElimPlatform(platform));
 
-  const titleCn = raw.OriginalTitle ?? raw.Title ?? raw.title ?? "";
-  const productUrl = raw.ExternalItemUrl ?? raw.TaobaoItemUrl ?? buildProductUrl(detectedPlatform, id);
+  const response = await fetch(`${ELIMAPI_BASE}/products/upload-image`, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeader(),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Elimapi image upload failed: ${response.status} ${text.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const imageId = data.data?.image_id ?? data.image_id;
+
+  if (!imageId) {
+    throw new Error("Elimapi image upload: no image_id in response");
+  }
+
+  return String(imageId);
+}
+
+// ── Normalisation ──
+
+interface ElimSearchItem {
+  id: number | string;
+  title?: string;
+  titleEn?: string;
+  price?: number;
+  promotion_price?: number;
+  img_url?: string;
+  link?: string;
+  sales_volume?: number;
+  seller_type?: string;
+  shop_name?: string;
+}
+
+interface ElimSku {
+  spec_name?: string;
+  name?: string;
+  price?: string | number;
+}
+
+function normaliseSearchItem(
+  raw: ElimSearchItem,
+  platform: Platform
+): NormalisedProduct {
+  const id = String(raw.id);
 
   return {
     id,
-    title_cn: titleCn,
-    price_cny: priceCny,
+    title_cn: raw.titleEn ?? raw.title ?? "",
+    price_cny: typeof raw.promotion_price === 'number' ? raw.promotion_price : (typeof raw.price === 'number' ? raw.price : 0),
     cn_shipping_cny: 0,
-    image_url: imageUrl,
-    product_url: productUrl,
-    shop_name: raw.VendorName ?? raw.VendorDisplayName ?? "",
-    platform: detectedPlatform,
-    sales_count: parseInt(raw.Volume ?? raw.FeedbackCount ?? "0", 10),
+    image_url: raw.img_url ?? "",
+    product_url: raw.link ?? buildProductUrl(platform, id),
+    shop_name: raw.shop_name ?? "",
+    platform,
+    sales_count: raw.sales_volume ?? 0,
     skus: [],
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function buildProductUrl(platform: Platform, itemId: string): string {
   const urls: Record<Platform, string> = {
@@ -308,6 +298,6 @@ async function setCachedResults(
   try {
     await redis.set(cacheKey(query, platform), results, { ex: CACHE_TTL });
   } catch {
-    // Redis unavailable — skip cache
+    // Redis unavailable
   }
 }
