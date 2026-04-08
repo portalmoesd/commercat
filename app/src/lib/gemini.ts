@@ -34,6 +34,32 @@ const flash = genAI.getGenerativeModel({
   systemInstruction: SYSTEM_PROMPT,
 });
 
+// ── Retry helper for Gemini API calls ──
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  label = "Gemini"
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const isRetryable = msg.includes("503") || msg.includes("429") || msg.includes("500") || msg.includes("overloaded");
+
+      if (isRetryable && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.warn(`${label} attempt ${attempt + 1} failed (${msg.slice(0, 80)}), retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(`${label}: exhausted retries`);
+}
+
 // ── Streaming Chat (yields text chunks) ──
 
 export async function* streamChatGenerator(
@@ -44,7 +70,6 @@ export async function* streamChatGenerator(
 ): AsyncGenerator<string> {
   const chat = flash.startChat({ history });
 
-  // Build message parts
   const parts: (
     | { text: string }
     | { inlineData: { mimeType: string; data: string } }
@@ -61,7 +86,12 @@ export async function* streamChatGenerator(
 
   parts.push({ text: userMessage || "What is this? Find similar products." });
 
-  const result = await chat.sendMessageStream(parts);
+  // Retry the initial stream connection
+  const result = await withRetry(
+    () => chat.sendMessageStream(parts),
+    3,
+    "Gemini stream"
+  );
 
   for await (const chunk of result.stream) {
     const text = chunk.text();
@@ -80,8 +110,13 @@ export async function translateQuery(
       ? `\nUser's size profile: ${JSON.stringify(sizeProfile)}`
       : "";
 
-  const result = await flash.generateContent(
-    `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on 1688 and Taobao. Keep brand names in English/original form (e.g. "SMEG", "Nike") since Chinese sellers use them. Mix brand name + Chinese product category. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`
+  const result = await withRetry(
+    () =>
+      flash.generateContent(
+        `Translate this shopping query to 2-3 Chinese search terms that Chinese sellers would use on 1688 and Taobao. Keep brand names in English/original form (e.g. "SMEG", "Nike") since Chinese sellers use them. Mix brand name + Chinese product category. Return ONLY a valid JSON array of strings, nothing else.\n\nQuery: "${query}"${sizeContext}`
+      ),
+    3,
+    "Gemini translate"
   );
   const text = result.response.text();
   return JSON.parse(text.replace(/```json|```/g, "").trim());
@@ -93,8 +128,10 @@ export async function filterResults(
   query: string,
   rawResults: object[]
 ): Promise<FilteredProduct[]> {
-  const result = await flash.generateContent(
-    `Original query: "${query}"
+  const result = await withRetry(
+    () =>
+      flash.generateContent(
+        `Original query: "${query}"
 
 Raw results:
 ${JSON.stringify(rawResults)}
@@ -114,6 +151,9 @@ Return the top 5 most relevant products as a valid JSON array. For each product 
 Remove products that are clearly irrelevant to the query.
 Sort by relevance_score descending.
 Return ONLY valid JSON, no explanation text.`
+      ),
+    3,
+    "Gemini filter"
   );
   const text = result.response.text();
   return JSON.parse(text.replace(/```json|```/g, "").trim());

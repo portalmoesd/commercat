@@ -1,14 +1,8 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient, createAdminClient } from "@/lib/supabase-server";
-import {
-  streamChatGenerator,
-  translateQuery,
-  filterResults,
-  type FilteredProduct,
-} from "@/lib/gemini";
+import { streamChatGenerator, translateQuery } from "@/lib/gemini";
 import {
   searchByImage as lensSearch,
-  extractSearchTerms,
   findBrandPrice,
 } from "@/lib/lens";
 import { searchByKeyword, searchByImage } from "@/lib/elimapi";
@@ -22,6 +16,50 @@ import type {
   ProcessedProduct,
   Message,
 } from "@/types";
+
+/**
+ * Convert NormalisedProduct[] directly to ProcessedProduct[] with pricing.
+ * No Gemini filtering — Elimapi results are already sorted by relevance.
+ */
+function applyPricing(
+  products: NormalisedProduct[],
+  fxRate: number,
+  currency: string,
+  maxItems = 10
+): ProcessedProduct[] {
+  // Deduplicate by ID, take first maxItems
+  const seen = new Set<string>();
+  const unique: NormalisedProduct[] = [];
+  for (const p of products) {
+    if (!seen.has(p.id) && p.price_cny > 0) {
+      seen.add(p.id);
+      unique.push(p);
+      if (unique.length >= maxItems) break;
+    }
+  }
+
+  return unique.map((p) => {
+    const priceBreakdown = calculatePrice(p.price_cny, p.cn_shipping_cny, fxRate, currency);
+    return {
+      id: p.id,
+      platform: p.platform,
+      title_en: p.title_cn, // Elimapi titleEn is stored in title_cn field
+      title_cn: p.title_cn,
+      image_url: p.image_url,
+      product_url: p.product_url,
+      price_cny: p.price_cny,
+      shop_name: p.shop_name,
+      sales_count: p.sales_count,
+      item_cost_local: priceBreakdown.item_cost,
+      commission_local: priceBreakdown.commission,
+      total_local: priceBreakdown.total,
+      currency,
+      skus: p.skus,
+      branded: false,
+      relevance_score: 1,
+    };
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,7 +100,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Use admin client for DB operations (bypasses RLS)
     const adminClient = createAdminClient();
 
     // Ensure user profile exists
@@ -120,7 +157,7 @@ export async function POST(req: NextRequest) {
     };
     messages.push(userMessage);
 
-    // Build Gemini history format (role: 'user' | 'model')
+    // Build Gemini history
     const geminiHistory = messages.slice(0, -1).map((m) => ({
       role: (m.role === "assistant" ? "model" : "user") as "user" | "model",
       parts: [{ text: m.content }],
@@ -134,39 +171,49 @@ export async function POST(req: NextRequest) {
       else if (image_base64.startsWith("UklGR")) imageMediaType = "image/webp";
     }
 
-    // Stream response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // If image uploaded, run Lens search in parallel with Gemini streaming
-          let lensPromise: Promise<{
+          const isImageSearch = !!image_base64;
+
+          // ── Start parallel tasks ──
+
+          // 1. Elimapi search (runs in parallel with Gemini chat)
+          let searchPromise: Promise<{
+            products: NormalisedProduct[];
             brandPrice: { price: string; source: string } | null;
-            searchTerms: string[];
-            imageUrl: string | null;
           }> | null = null;
 
-          if (image_base64) {
-            lensPromise = (async () => {
+          if (isImageSearch) {
+            // IMAGE SEARCH: Elimapi visual search + Lens brand price (no Gemini needed)
+            searchPromise = (async () => {
+              let brandPrice: { price: string; source: string } | null = null;
+
+              // Run Lens for brand price detection (optional, non-blocking)
               try {
-                // Upload to Supabase Storage
                 const { uploadImage } = await import("@/lib/storage");
                 const imageUrl = await uploadImage(image_base64!, authUser.id);
-
-                // Run Google Lens
                 const lensMatches = await lensSearch(imageUrl);
-                const brandPrice = findBrandPrice(lensMatches);
-                const searchTerms = extractSearchTerms(lensMatches);
-
-                return { brandPrice, searchTerms, imageUrl };
-              } catch (err) {
-                console.error("Lens search failed:", err);
-                return { brandPrice: null, searchTerms: [], imageUrl: null };
+                brandPrice = findBrandPrice(lensMatches);
+              } catch {
+                // Lens failed — continue without brand price
               }
+
+              // Run Elimapi visual image search
+              const products = await searchByImage(
+                image_base64!,
+                "taobao" as Platform
+              ).catch((err) => {
+                console.error("Image search failed:", err);
+                return [] as NormalisedProduct[];
+              });
+
+              return { products, brandPrice };
             })();
           }
 
-          // Stream Gemini response
+          // 2. Stream Gemini chat response (1 Gemini call)
           let fullResponse = "";
           const userText = message || "What is this? Find similar products.";
 
@@ -190,13 +237,11 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Check for search intent
-          const isImageSearch = !!image_base64;
-          if (fullResponse.includes("[SEARCH_INTENT]") || isImageSearch) {
-            const limitStatus = await checkAndIncrementSearchCount(
-              authUser.id,
-              tier
-            );
+          // ── Handle search ──
+          const hasSearchOrImage = fullResponse.includes("[SEARCH_INTENT]") || isImageSearch;
+
+          if (hasSearchOrImage) {
+            const limitStatus = await checkAndIncrementSearchCount(authUser.id, tier);
 
             if (!limitStatus.allowed) {
               controller.enqueue(
@@ -217,62 +262,16 @@ export async function POST(req: NextRequest) {
               );
 
               let allProducts: NormalisedProduct[] = [];
-              let chineseTerms: string[] = [];
               let brandPrice: { price: string; source: string } | null = null;
 
-              if (isImageSearch && lensPromise) {
-                // Wait for Lens results
-                const lensResult = await lensPromise;
-                brandPrice = lensResult.brandPrice;
-
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({ type: "status", content: "Finding similar products..." })}\n\n`
-                  )
-                );
-
-                // Run Elimapi visual image search (upload base64 → get image_id → search)
-                // This gives same results as searching directly on Taobao/1688
-                const imageSearchPromise = searchByImage(
-                  image_base64!,
-                  "taobao" as Platform
-                ).catch((err) => {
-                  console.error("Elimapi image search failed:", err);
-                  return [] as NormalisedProduct[];
-                });
-
-                // Also do keyword search as backup using Lens/Gemini terms
-                const termsToTranslate =
-                  lensResult.searchTerms.length > 0
-                    ? lensResult.searchTerms
-                    : [fullResponse || message || "similar product"];
-
-                for (const term of termsToTranslate.slice(0, 2)) {
-                  const cnTerms = await translateQuery(term, sizeProfile);
-                  chineseTerms.push(...cnTerms);
-                }
-
-                const keywordSearchPromises = chineseTerms.slice(0, 3).map((term) =>
-                  searchByKeyword(term, "taobao" as Platform)
-                );
-
-                // Wait for both image search and keyword searches
-                const [imageResults, ...keywordResults] = await Promise.allSettled([
-                  imageSearchPromise,
-                  ...keywordSearchPromises,
-                ]);
-
-                // Prioritize image search results (visual match), then keyword results
-                const imageProducts = imageResults.status === "fulfilled" ? imageResults.value : [];
-                const keywordProducts = keywordResults
-                  .filter((r) => r.status === "fulfilled")
-                  .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
-
-                // Image results first (better visual match), then keyword results
-                allProducts = [...imageProducts, ...keywordProducts];
+              if (isImageSearch && searchPromise) {
+                // IMAGE: results already running in parallel
+                const result = await searchPromise;
+                allProducts = result.products;
+                brandPrice = result.brandPrice;
               } else {
-                // Text search
-                chineseTerms = await translateQuery(message, sizeProfile);
+                // TEXT: translate to Chinese (1 Gemini call), then Elimapi keyword search
+                const chineseTerms = await translateQuery(message, sizeProfile);
 
                 controller.enqueue(
                   encoder.encode(
@@ -280,65 +279,28 @@ export async function POST(req: NextRequest) {
                   )
                 );
 
-                // Search both Taobao AND 1688 in parallel
-                const searchPromises = chineseTerms.flatMap((term) => [
-                  searchByKeyword(term, "taobao" as Platform),
-                  searchByKeyword(term, "1688" as Platform),
-                ]);
-                const searchResults = await Promise.allSettled(searchPromises);
+                // Search both Taobao AND 1688
+                const searchResults = await Promise.allSettled(
+                  chineseTerms.flatMap((term) => [
+                    searchByKeyword(term, "taobao" as Platform),
+                    searchByKeyword(term, "1688" as Platform),
+                  ])
+                );
                 allProducts = searchResults
                   .filter((r) => r.status === "fulfilled")
                   .flatMap((r) => (r as PromiseFulfilledResult<NormalisedProduct[]>).value);
               }
 
-              // Filter with Gemini
-              const filtered = await filterResults(message, allProducts);
-
-              // Calculate prices
+              // Apply pricing directly — no Gemini filtering needed
               const rates = await getFxRates();
               const fxRate = rates[currency] ?? rates["USD"];
+              const processedProducts = applyPricing(allProducts, fxRate, currency);
 
-              const processedProducts: ProcessedProduct[] = filtered.map(
-                (p: FilteredProduct) => {
-                  const priceBreakdown = calculatePrice(
-                    p.price_cny,
-                    0,
-                    fxRate,
-                    currency
-                  );
-                  // Find original normalised product to get shop_name/sales_count
-                  const original = allProducts.find(
-                    (op) => op.id === p.id
-                  );
-
-                  return {
-                    id: p.id,
-                    platform: p.platform as Platform,
-                    title_en: p.title_en,
-                    title_cn: p.title_cn,
-                    image_url: p.image_url,
-                    product_url: p.product_url,
-                    price_cny: p.price_cny,
-                    shop_name: original?.shop_name ?? "",
-                    sales_count: original?.sales_count ?? 0,
-                    item_cost_local: priceBreakdown.item_cost,
-                    commission_local: priceBreakdown.commission,
-                    total_local: priceBreakdown.total,
-                    currency,
-                    skus: p.skus,
-                    branded: p.branded,
-                    relevance_score: p.relevance_score,
-                  };
-                }
-              );
-
-              // Send product cards + brand price if available
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({
                     type: "product_cards",
                     products: processedProducts,
-                    query_cn: chineseTerms,
                     brand_price: brandPrice,
                   })}\n\n`
                 )
@@ -372,11 +334,9 @@ export async function POST(req: NextRequest) {
               `data: ${JSON.stringify({ type: "done", conversation_id: conversationId })}\n\n`
             )
           );
-
           controller.close();
         } catch (error) {
-          const errMsg =
-            error instanceof Error ? error.message : "Something went wrong";
+          const errMsg = error instanceof Error ? error.message : "Something went wrong";
           console.error("Chat stream error:", error);
           controller.enqueue(
             encoder.encode(
