@@ -31,7 +31,7 @@ function applyPricing(
   const seen = new Set<string>();
   const unique: NormalisedProduct[] = [];
   for (const p of products) {
-    if (!seen.has(p.id) && p.price_cny > 0) {
+    if (!seen.has(p.id) && p.id) {
       seen.add(p.id);
       unique.push(p);
       if (unique.length >= maxItems) break;
@@ -266,6 +266,13 @@ export async function POST(req: NextRequest) {
                 const result = await searchPromise;
                 allProducts = result.products;
                 brandPrice = result.brandPrice;
+
+                // Debug: tell user what happened
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "text", content: `\n\nFound ${allProducts.length} products via image search.` })}\n\n`
+                  )
+                );
               } else {
                 // TEXT: translate to Chinese (1 Gemini call), then Elimapi keyword search
                 const chineseTerms = await translateQuery(message, sizeProfile);
@@ -294,10 +301,20 @@ export async function POST(req: NextRequest) {
 
               console.log(`Search results: ${allProducts.length} products, fxRate=${fxRate}, currency=${currency}`);
               if (allProducts.length > 0) {
-                console.log("First product:", JSON.stringify(allProducts[0]).slice(0, 200));
+                console.log("First product:", JSON.stringify(allProducts[0]).slice(0, 300));
               }
 
+              // Show results even if price is 0 (image search may not return prices)
               const processedProducts = applyPricing(allProducts, fxRate, currency);
+
+              if (processedProducts.length === 0 && allProducts.length > 0) {
+                // Products found but all filtered out — likely price=0, try without price filter
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "text", content: `\n\n(${allProducts.length} products found but all had price=0, showing anyway)` })}\n\n`
+                  )
+                );
+              }
 
               controller.enqueue(
                 encoder.encode(
